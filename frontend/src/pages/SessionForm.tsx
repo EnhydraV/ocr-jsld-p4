@@ -1,9 +1,13 @@
-import {useState, useEffect, ChangeEventHandler, SubmitEventHandler} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import { Teacher, Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
+import FormField from '../components/FormField';
+import SelectField from '../components/SelectField';
+import TextAreaField from '../components/TextAreaField';
+import FormError from '../components/FormError';
 
 function SessionForm() {
   const navigate = useNavigate();
@@ -20,7 +24,6 @@ function SessionForm() {
   const { loading, setLoading, error, setError } = useRequestState();
   const { user, token } = useAuth();
 
-  // Redirect if not admin
   useEffect(() => {
     if (!user || !user.admin) {
       navigate('/sessions');
@@ -37,9 +40,7 @@ function SessionForm() {
   const fetchTeachers = async () => {
     try {
       const response = await api.get<Teacher[]>('/teacher', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setTeachers(response.data);
     } catch (err) {
@@ -50,9 +51,7 @@ function SessionForm() {
   const fetchSession = async () => {
     try {
       const response = await api.get<Session>(`/session/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const session = response.data;
       setFormData({
@@ -67,41 +66,34 @@ function SessionForm() {
     }
   };
 
-  const handleChange:ChangeEventHandler = (e) => {
-    const value =
-      e.target.name === 'teacherId' ? parseInt(e.target.value) : e.target.value;
-    setFormData({
-      ...formData,
-      [e.target.name]: value,
-    });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const value = e.target.name === 'teacherId' ? parseInt(e.target.value) : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
-  const handleSubmit:SubmitEventHandler = async (e) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       if (isEditMode) {
-        await api.put(`/session/${id}`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await api.put(`/session/${id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await api.post('/session', formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await api.post('/session', formData, { headers: { Authorization: `Bearer ${token}` } });
       }
       navigate('/sessions');
-    } catch (err:any) {
+    } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save session');
     } finally {
       setLoading(false);
     }
   };
+
+  const teacherOptions = teachers.map((t) => ({
+    value: t.id,
+    label: `${t.firstName} ${t.lastName}`,
+  }));
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -111,74 +103,29 @@ function SessionForm() {
             {isEditMode ? 'Edit Session' : 'Create New Session'}
           </h1>
 
-          {error ? (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          ) : null}
+          <FormError message={error} />
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Session Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Teacher
-              </label>
-              <select
-                name="teacherId"
-                value={formData.teacherId}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-                required
-              >
-                <option value="">Select a teacher</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.firstName} {teacher.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-                required
-              />
-            </div>
+            <FormField label="Session Name" type="text" name="name" value={formData.name} onChange={handleChange} required />
+            <FormField label="Date" type="date" name="date" value={formData.date} onChange={handleChange} required />
+            <SelectField
+              label="Teacher"
+              name="teacherId"
+              value={formData.teacherId}
+              onChange={handleChange}
+              options={teacherOptions}
+              placeholder="Select a teacher"
+              required
+            />
+            <TextAreaField
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={6}
+              className="mb-6"
+              required
+            />
 
             <div className="flex space-x-4">
               <button

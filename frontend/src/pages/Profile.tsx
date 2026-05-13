@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
+import FormError from '../components/FormError';
+import { authService } from '../services/auth.service';
+
+const ProfileField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="border-b pb-4">
+    <label className="block text-gray-600 text-sm font-semibold mb-1">{label}</label>
+    <div className="text-lg text-gray-800">{children}</div>
+  </div>
+);
 
 function Profile() {
   const navigate = useNavigate();
@@ -23,9 +32,7 @@ function Profile() {
     try {
       setLoading(true);
       const response = await api.get(`/user/${user.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setUserInfo(response.data);
     } catch (err) {
@@ -43,9 +50,7 @@ function Profile() {
 
     try {
       await api.delete(`/user/${user.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       authService.logout();
       navigate('/login');
@@ -59,15 +64,9 @@ function Profile() {
     try {
       setPromoteError('');
       setPromoteLoading(true);
-      const response = await api.post(
-        '/user/promote-admin',
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await api.post('/user/promote-admin', {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUserInfo(response.data);
       authService.updateCurrentUser({ admin: response.data.admin });
     } catch (err) {
@@ -103,43 +102,17 @@ function Profile() {
           <h1 className="text-3xl font-bold text-gray-800 mb-8">My Profile</h1>
 
           <div className="space-y-4 mb-8">
-            <div className="border-b pb-4">
-              <label className="block text-gray-600 text-sm font-semibold mb-1">
-                First Name
-              </label>
-              <p className="text-lg text-gray-800">{userInfo.firstName}</p>
-            </div>
+            <ProfileField label="First Name">{userInfo.firstName}</ProfileField>
+            <ProfileField label="Last Name">{userInfo.lastName}</ProfileField>
+            <ProfileField label="Email">{userInfo.email}</ProfileField>
 
-            <div className="border-b pb-4">
-              <label className="block text-gray-600 text-sm font-semibold mb-1">
-                Last Name
-              </label>
-              <p className="text-lg text-gray-800">{userInfo.lastName}</p>
-            </div>
-
-            <div className="border-b pb-4">
-              <label className="block text-gray-600 text-sm font-semibold mb-1">
-                Email
-              </label>
-              <p className="text-lg text-gray-800">{userInfo.email}</p>
-            </div>
-
-            <div className="border-b pb-4">
-              <label className="block text-gray-600 text-sm font-semibold mb-1">
-                Account Type
-              </label>
-              <p className="text-lg text-gray-800">
-                {userInfo.admin ? (
-                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
-                    Administrator
-                  </span>
-                ) : (
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                    User
-                  </span>
-                )}
-              </p>
-              {isDev && !userInfo.admin ? (
+            <ProfileField label="Account Type">
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                userInfo.admin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+              }`}>
+                {userInfo.admin ? 'Administrator' : 'User'}
+              </span>
+              {isDev && !userInfo.admin && (
                 <div className="mt-3">
                   <button
                     onClick={handlePromoteAdmin}
@@ -148,25 +121,18 @@ function Profile() {
                   >
                     {promoteLoading ? 'Promoting...' : 'Promote to Admin (Dev)'}
                   </button>
-                  {promoteError ? (
-                    <div className="mt-2 text-sm text-red-600">{promoteError}</div>
-                  ) : null}
+                  {promoteError && <FormError message={promoteError} />}
                 </div>
-              ) : null}
-            </div>
+              )}
+            </ProfileField>
 
-            <div className="border-b pb-4">
-              <label className="block text-gray-600 text-sm font-semibold mb-1">
-                Member Since
-              </label>
-              <p className="text-lg text-gray-800">
-                {new Date(userInfo.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-            </div>
+            <ProfileField label="Member Since">
+              {new Date(userInfo.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </ProfileField>
           </div>
 
           <div className="flex space-x-4">

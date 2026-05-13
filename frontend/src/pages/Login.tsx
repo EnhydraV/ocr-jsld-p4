@@ -1,7 +1,9 @@
-import {SubmitEventHandler, useState} from 'react';
+import { SubmitEventHandler, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { useRequestState } from '../hooks/useRequestState';
+import FormField from '../components/FormField';
+import FormError from '../components/FormError';
 
 function Login() {
   const navigate = useNavigate();
@@ -9,7 +11,7 @@ function Login() {
   const [password, setPassword] = useState<string>('');
   const { loading, setLoading, error, setError } = useRequestState();
 
-  const handleSubmit:SubmitEventHandler = async (e) => {
+  const handleSubmit: SubmitEventHandler = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -31,38 +33,24 @@ function Login() {
           Login to Yoga Studio
         </h2>
 
-        {error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        ) : null}
+        <FormError message={error} />
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-            />
-          </div>
+          <FormField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <FormField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mb-6"
+            required
+          />
 
           <button
             type="submit"

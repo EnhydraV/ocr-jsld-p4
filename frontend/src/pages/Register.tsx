@@ -1,11 +1,13 @@
-import {ChangeEventHandler, SubmitEventHandler, useState} from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { useRequestState } from '../hooks/useRequestState';
+import FormField from '../components/FormField';
+import FormError from '../components/FormError';
 
 function Register() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<{email:string,password:string,firstName:string,lastName:string}>({
+  const [formData, setFormData] = useState<{ email: string; password: string; firstName: string; lastName: string }>({
     email: '',
     password: '',
     firstName: '',
@@ -13,14 +15,11 @@ function Register() {
   });
   const { loading, setLoading, error, setError } = useRequestState();
 
-  const handleChange:ChangeEventHandler = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit:SubmitEventHandler = async (e) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -28,7 +27,7 @@ function Register() {
     try {
       await authService.register(formData);
       navigate('/sessions');
-    } catch (err:any) {
+    } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
@@ -42,69 +41,22 @@ function Register() {
           Register for Yoga Studio
         </h2>
 
-        {error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        ) : null}
+        <FormError message={error} />
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              First Name
-            </label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Last Name
-            </label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              required
-              minLength={8}
-            />
-          </div>
+          <FormField label="First Name" type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
+          <FormField label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+          <FormField label="Email" type="email" name="email" value={formData.email} onChange={handleChange} required />
+          <FormField
+            label="Password"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            className="mb-6"
+            required
+            minLength={8}
+          />
 
           <button
             type="submit"
