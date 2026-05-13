@@ -1,3 +1,4 @@
+import { type ReactNode, type ReactElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
@@ -8,9 +9,9 @@ import SessionForm from './pages/SessionForm';
 import Profile from './pages/Profile';
 import { authService } from './services/auth.service';
 
-function PrivateRoute({ children }: any) {
+function PrivateRoute({ children }: { children: ReactNode }): ReactElement {
   const isAuthenticated = authService.isAuthenticated();
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function App() {

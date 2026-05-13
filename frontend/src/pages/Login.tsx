@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import {SubmitEventHandler, useState} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
+import { useRequestState } from '../hooks/useRequestState';
 
 function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState<any>('');
-  const [password, setPassword] = useState<any>('');
-  const [error, setError] = useState<any>('');
-  const [loading, setLoading] = useState<any>(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const { loading, setLoading, error, setError } = useRequestState();
 
-  const handleSubmit = async (e: any): Promise<any> => {
+  const handleSubmit:SubmitEventHandler = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);

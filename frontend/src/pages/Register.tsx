@@ -1,26 +1,26 @@
-import { useState } from 'react';
+import {ChangeEventHandler, SubmitEventHandler, useState} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
+import { useRequestState } from '../hooks/useRequestState';
 
 function Register() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<{email:string,password:string,firstName:string,lastName:string}>({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
   });
-  const [error, setError] = useState<any>('');
-  const [loading, setLoading] = useState<any>(false);
+  const { loading, setLoading, error, setError } = useRequestState();
 
-  const handleChange = (e: any): any => {
+  const handleChange:ChangeEventHandler = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e: any): Promise<any> => {
+  const handleSubmit:SubmitEventHandler = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -28,7 +28,7 @@ function Register() {
     try {
       await authService.register(formData);
       navigate('/sessions');
-    } catch (err: any) {
+    } catch (err:any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);

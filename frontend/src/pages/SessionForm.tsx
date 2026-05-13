@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect, ChangeEventHandler, SubmitEventHandler} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { authService } from '../services/auth.service';
 import { Teacher, Session } from '../types';
+import { useRequestState } from '../hooks/useRequestState';
+import { useAuth } from '../hooks/useAuth';
 
 function SessionForm() {
   const navigate = useNavigate();
@@ -15,11 +16,9 @@ function SessionForm() {
     description: '',
     teacherId: '',
   });
-  const [teachers, setTeachers] = useState<any>([]);
-  const [loading, setLoading] = useState<any>(false);
-  const [error, setError] = useState<any>('');
-  const user = authService.getCurrentUser();
-  const token = authService.getToken();
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const { loading, setLoading, error, setError } = useRequestState();
+  const { user, token } = useAuth();
 
   // Redirect if not admin
   useEffect(() => {
@@ -35,7 +34,7 @@ function SessionForm() {
     }
   }, [id]);
 
-  const fetchTeachers = async (): Promise<any> => {
+  const fetchTeachers = async () => {
     try {
       const response = await api.get<Teacher[]>('/teacher', {
         headers: {
@@ -43,12 +42,12 @@ function SessionForm() {
         },
       });
       setTeachers(response.data);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch teachers', err);
     }
   };
 
-  const fetchSession = async (): Promise<any> => {
+  const fetchSession = async () => {
     try {
       const response = await api.get<Session>(`/session/${id}`, {
         headers: {
@@ -62,13 +61,13 @@ function SessionForm() {
         description: session.description,
         teacherId: session.teacher.id,
       });
-    } catch (err: any) {
+    } catch (err) {
       setError('Failed to load session');
       console.error(err);
     }
   };
 
-  const handleChange = (e: any): any => {
+  const handleChange:ChangeEventHandler = (e) => {
     const value =
       e.target.name === 'teacherId' ? parseInt(e.target.value) : e.target.value;
     setFormData({
@@ -77,7 +76,7 @@ function SessionForm() {
     });
   };
 
-  const handleSubmit = async (e: any): Promise<any> => {
+  const handleSubmit:SubmitEventHandler = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -97,7 +96,7 @@ function SessionForm() {
         });
       }
       navigate('/sessions');
-    } catch (err: any) {
+    } catch (err:any) {
       setError(err.response?.data?.message || 'Failed to save session');
     } finally {
       setLoading(false);
@@ -159,7 +158,7 @@ function SessionForm() {
                 required
               >
                 <option value="">Select a teacher</option>
-                {teachers.map((teacher: any) => (
+                {teachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
                     {teacher.firstName} {teacher.lastName}
                   </option>

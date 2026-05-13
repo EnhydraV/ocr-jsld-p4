@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { authService } from '../services/auth.service';
 import { Session } from '../types';
+import { useRequestState } from '../hooks/useRequestState';
+import { useAuth } from '../hooks/useAuth';
 
 function Sessions() {
-  const [sessions, setSessions] = useState<any>([]);
-  const [loading, setLoading] = useState<any>(true);
-  const [error, setError] = useState<any>('');
-  const user = authService.getCurrentUser();
-  const token = authService.getToken();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const { loading, setLoading, error, setError } = useRequestState(true);
+  const { user, token } = useAuth();
 
   useEffect(() => {
     fetchSessions();
   }, []);
 
-  const fetchSessions = async (): Promise<any> => {
+  const fetchSessions = async () => {
     try {
       setLoading(true);
       const response = await api.get<Session[]>('/session', {
@@ -24,7 +23,7 @@ function Sessions() {
         },
       });
       setSessions(response.data);
-    } catch (err: any) {
+    } catch (err:any) {
       setError('Failed to load sessions');
       console.error(err);
     } finally {
@@ -32,7 +31,7 @@ function Sessions() {
     }
   };
 
-  const handleDelete = async (sessionId: any): Promise<any> => {
+  const handleDelete = async (sessionId:number) => {
     if (!window.confirm('Are you sure you want to delete this session?')) {
       return;
     }
@@ -44,7 +43,7 @@ function Sessions() {
         },
       });
       fetchSessions();
-    } catch (err: any) {
+    } catch (err) {
       alert('Failed to delete session');
       console.error(err);
     }
@@ -89,7 +88,7 @@ function Sessions() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sessions.map((session: any) => (
+            {sessions.map((session) => (
               <div key={session.id} className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
                   {session.name}
