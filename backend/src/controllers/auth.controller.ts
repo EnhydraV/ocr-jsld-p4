@@ -1,27 +1,18 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import {Request, Response} from 'express';
+import {PrismaClient, User} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { generateToken } from '../utils/jwt.util';
 
 const prisma = new PrismaClient();
 
 export class AuthController {
-  async login(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
-      }
-      if (!password) {
-        return res.status(400).json({ message: 'Password is required' });
-      }
-      if (typeof email !== 'string') {
-        return res.status(400).json({ message: 'Email must be a string' });
-      }
-      if (typeof password !== 'string') {
-        return res.status(400).json({ message: 'Password must be a string' });
-      }
+    async login(req: Request, res: Response) {
+        try {
+            const result = LoginSchema.safeParse(req.body);
+            if (!result.success) {
+                return res.status(400).json({'message': result.error.message});
+            }
+            const {email, password} = result.data;
 
       const user = await prisma.user.findUnique({
         where: { email },
@@ -85,26 +76,26 @@ export class AuthController {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          admin: false,
-        },
-      });
+            const user: User = await prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    firstName,
+                    lastName,
+                    admin: false,
+                },
+            });
 
       const token = generateToken(user.id);
 
-      const response: any = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        admin: user.admin,
-        token,
-      };
+            const response = {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                admin: user.admin,
+                token,
+            };
 
       return res.status(201).json(response);
     } catch (error: any) {
