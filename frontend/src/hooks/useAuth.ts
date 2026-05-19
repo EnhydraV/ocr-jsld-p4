@@ -1,13 +1,13 @@
 import { authService } from '../services/auth.service';
-import { User } from '../types';
+import {AuthResponse} from '../types';
 
 interface AuthContext {
-  user: User;
+  user: AuthResponse|null;
   token: string | null;
 }
 
 export function useAuth(): AuthContext {
-  const user: User = authService.getCurrentUser();
+  const user = authService.getCurrentUser();
   const token = authService.getToken();
   return { user, token };
 }
