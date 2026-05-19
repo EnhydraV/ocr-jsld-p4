@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import api from '../services/api';
-import { Teacher, Session } from '../types';
+import { Teacher, Session, SessionFormData } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
 import FormField from '../components/FormField';
@@ -14,11 +15,11 @@ function SessionForm() {
   const { id } = useParams();
   const isEditMode = !!id;
 
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<SessionFormData>({
     name: '',
     date: '',
     description: '',
-    teacherId: '',
+    teacherId: 0,
   });
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const { loading, setLoading, error, setError } = useRequestState();
@@ -30,28 +31,25 @@ function SessionForm() {
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    fetchTeachers();
-    if (isEditMode) {
-      fetchSession();
-    }
-  }, [id]);
-
-  const fetchTeachers = async () => {
+  const fetchTeachers = useCallback(async (signal?: AbortSignal) => {
     try {
       const response = await api.get<Teacher[]>('/teacher', {
         headers: { Authorization: `Bearer ${token}` },
+        signal,
       });
       setTeachers(response.data);
     } catch (err) {
-      console.error('Failed to fetch teachers', err);
+      if (axios.isCancel(err)) return;
+      setError('Failed to fetch teachers');
+      console.error(err);
     }
-  };
+  }, [token, setError]);
 
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async (signal?: AbortSignal) => {
     try {
       const response = await api.get<Session>(`/session/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal,
       });
       const session = response.data;
       setFormData({
@@ -61,10 +59,18 @@ function SessionForm() {
         teacherId: session.teacher.id,
       });
     } catch (err) {
+      if (axios.isCancel(err)) return;
       setError('Failed to load session');
       console.error(err);
     }
-  };
+  }, [id, token, setError]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchTeachers(controller.signal);
+    if (isEditMode) fetchSession(controller.signal);
+    return () => controller.abort();
+  }, [fetchTeachers, fetchSession, isEditMode]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.name === 'teacherId' ? parseInt(e.target.value) : e.target.value;
@@ -83,8 +89,8 @@ function SessionForm() {
         await api.post('/session', formData, { headers: { Authorization: `Bearer ${token}` } });
       }
       navigate('/sessions');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save session');
+    } catch (err) {
+      setError(axios.isAxiosError(err) ? err.response?.data?.message || 'Failed to save session' : 'Failed to save session');
     } finally {
       setLoading(false);
     }
