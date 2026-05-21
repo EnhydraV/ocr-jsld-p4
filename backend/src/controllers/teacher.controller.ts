@@ -13,7 +13,7 @@ export class TeacherController {
         },
       });
 
-      const response: any = teachers.map((teacher: any) => ({
+      const response = teachers.map((teacher) => ({
         id: teacher.id,
         firstName: teacher.firstName,
         lastName: teacher.lastName,
@@ -50,7 +50,7 @@ export class TeacherController {
         return res.status(404).json({ message: 'Teacher not found' });
       }
 
-      const response: any = {
+      const response = {
         id: teacher.id,
         firstName: teacher.firstName,
         lastName: teacher.lastName,

@@ -18,7 +18,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     return res.status(401).json({ message: 'Invalid token format' });
   }
 
-  const decoded: any = verifyToken(token);
+  const decoded = verifyToken(token);
 
   if (!decoded) {
     return res.status(401).json({ message: 'Invalid or expired token' });
