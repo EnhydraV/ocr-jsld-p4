@@ -7,34 +7,31 @@ import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Controllers
 const authController = new AuthController();
 const sessionController = new SessionController();
 const teacherController = new TeacherController();
 const userController = new UserController();
 
 // Auth routes (public)
-router.post('/api/auth/login', (req, res) => authController.login(req, res));
-router.post('/api/auth/register', (req, res) => authController.register(req, res));
+router.post('/api/auth/login', (req, res, next) => authController.login(req, res, next));
+router.post('/api/auth/register', (req, res, next) => authController.register(req, res, next));
 
 // Session routes (protected)
-router.get('/api/session', authMiddleware, (req, res) => sessionController.getAll(req, res));
-router.get('/api/session/:id', authMiddleware, (req, res) => sessionController.getById(req, res));
-router.post('/api/session', authMiddleware, (req, res) => sessionController.create(req, res));
-router.put('/api/session/:id', authMiddleware, (req, res) => sessionController.update(req, res));
-router.delete('/api/session/:id', authMiddleware, (req, res) => sessionController.delete(req, res));
-router.post('/api/session/:id/participate/:userId', authMiddleware, (req, res) => sessionController.participate(req, res));
-router.delete('/api/session/:id/participate/:userId', authMiddleware, (req, res) => sessionController.unparticipate(req, res));
+router.get('/api/session', authMiddleware, (req, res, next) => sessionController.getAll(req, res, next));
+router.get('/api/session/:id', authMiddleware, (req, res, next) => sessionController.getById(req, res, next));
+router.post('/api/session', authMiddleware, (req, res, next) => sessionController.create(req, res, next));
+router.put('/api/session/:id', authMiddleware, (req, res, next) => sessionController.update(req, res, next));
+router.delete('/api/session/:id', authMiddleware, (req, res, next) => sessionController.delete(req, res, next));
+router.post('/api/session/:id/participate/:userId', authMiddleware, (req, res, next) => sessionController.participate(req, res, next));
+router.delete('/api/session/:id/participate/:userId', authMiddleware, (req, res, next) => sessionController.unparticipate(req, res, next));
 
 // Teacher routes (protected)
-router.get('/api/teacher', authMiddleware, (req, res) => teacherController.getAll(req, res));
-router.get('/api/teacher/:id', authMiddleware, (req, res) => teacherController.getById(req, res));
+router.get('/api/teacher', authMiddleware, (req, res, next) => teacherController.getAll(req, res, next));
+router.get('/api/teacher/:id', authMiddleware, (req, res, next) => teacherController.getById(req, res, next));
 
 // User routes (protected)
-router.get('/api/user/:id', authMiddleware, (req, res) => userController.getById(req, res));
-router.post('/api/user/promote-admin', authMiddleware, (req, res) =>
-  userController.promoteSelfToAdmin(req, res),
-);
-router.delete('/api/user/:id', authMiddleware, (req, res) => userController.delete(req, res));
+router.get('/api/user/:id', authMiddleware, (req, res, next) => userController.getById(req, res, next));
+router.post('/api/user/promote-admin', authMiddleware, (req, res, next) => userController.promoteSelfToAdmin(req, res, next));
+router.delete('/api/user/:id', authMiddleware, (req, res, next) => userController.delete(req, res, next));
 
 export default router;
