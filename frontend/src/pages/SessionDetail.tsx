@@ -5,6 +5,8 @@ import api from '../services/api';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
+import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
 
 function SessionDetail() {
@@ -21,13 +23,13 @@ function SessionDetail() {
       setLoading(true);
       setError('');
       const response = await api.get<Session>(`/session/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        ...authHeaders(token),
         signal,
       });
       setSession(response.data);
     } catch (err) {
       if (axios.isCancel(err)) return;
-      setError('Failed to load session details');
+      setError(getAxiosErrorMessage(err, 'Failed to load session details'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -44,12 +46,10 @@ function SessionDetail() {
     try {
       setParticipateLoading(true);
       setParticipateError('');
-      await api.post(`/session/${id}/participate/${user!.id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/session/${id}/participate/${user!.id}`, {}, authHeaders(token));
       fetchSession();
     } catch (err) {
-      setParticipateError('Failed to join session');
+      setParticipateError(getAxiosErrorMessage(err, 'Failed to join session'));
       console.error(err);
     } finally {
       setParticipateLoading(false);
@@ -60,12 +60,10 @@ function SessionDetail() {
     try {
       setParticipateLoading(true);
       setParticipateError('');
-      await api.delete(`/session/${id}/participate/${user!.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/session/${id}/participate/${user!.id}`, authHeaders(token));
       fetchSession();
     } catch (err) {
-      setParticipateError('Failed to leave session');
+      setParticipateError(getAxiosErrorMessage(err, 'Failed to leave session'));
       console.error(err);
     } finally {
       setParticipateLoading(false);
@@ -77,12 +75,10 @@ function SessionDetail() {
     try {
       setDeleteLoading(true);
       setDeleteError('');
-      await api.delete(`/session/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/session/${id}`, authHeaders(token));
       navigate('/sessions');
     } catch (err) {
-      setDeleteError('Failed to delete session');
+      setDeleteError(getAxiosErrorMessage(err, 'Failed to delete session'));
       console.error(err);
     } finally {
       setDeleteLoading(false);
@@ -107,12 +103,7 @@ function SessionDetail() {
               <div className="space-y-2 text-gray-600">
                 <p>
                   <strong>Date:</strong>{' '}
-                  {new Date(session.date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatDate(session.date, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
                 <p><strong>Teacher:</strong> {session.teacher.firstName} {session.teacher.lastName}</p>
                 <p><strong>Participants:</strong> {session.users.length}</p>

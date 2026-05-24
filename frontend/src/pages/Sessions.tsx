@@ -5,6 +5,8 @@ import api from '../services/api';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
+import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
 
 function Sessions() {
@@ -18,13 +20,13 @@ function Sessions() {
       setLoading(true);
       setError('');
       const response = await api.get<Session[]>('/session', {
-        headers: { Authorization: `Bearer ${token}` },
+        ...authHeaders(token),
         signal,
       });
       setSessions(response.data);
     } catch (err) {
       if (axios.isCancel(err)) return;
-      setError('Failed to load sessions');
+      setError(getAxiosErrorMessage(err, 'Failed to load sessions'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -42,12 +44,10 @@ function Sessions() {
     try {
       setDeleteLoading(true);
       setDeleteError('');
-      await api.delete(`/session/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/session/${sessionId}`, authHeaders(token));
       fetchSessions();
     } catch (err) {
-      setDeleteError('Failed to delete session');
+      setDeleteError(getAxiosErrorMessage(err, 'Failed to delete session'));
       console.error(err);
     } finally {
       setDeleteLoading(false);
@@ -87,7 +87,7 @@ function Sessions() {
               {sessions.map((session) => (
                 <div key={session.id} className="bg-white rounded-lg shadow-md p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{session.name}</h3>
-                  <p className="text-gray-600 mb-2">Date: {new Date(session.date).toLocaleDateString()}</p>
+                  <p className="text-gray-600 mb-2">Date: {formatDate(session.date)}</p>
                   <p className="text-gray-600 mb-2">Teacher: {session.teacher.firstName} {session.teacher.lastName}</p>
                   <p className="text-gray-600 mb-4">Participants: {session.users.length}</p>
                   <p className="text-gray-700 mb-4 line-clamp-3">{session.description}</p>

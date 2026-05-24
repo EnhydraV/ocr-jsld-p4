@@ -1,12 +1,14 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
+import axios from "axios";
 import api from '../services/api';
 import {useRequestState} from '../hooks/useRequestState';
 import {useAuth} from '../hooks/useAuth';
+import {authHeaders, getAxiosErrorMessage} from '../utils/http';
+import {formatDate} from '../utils/date';
 import FormError from '../components/FormError';
 import {authService} from '../services/auth.service';
 import {User} from "../types";
-import axios from "axios";
 
 const ProfileField = ({label, children}: { label: string; children: React.ReactNode }) => (
     <div className="border-b pb-4">
@@ -40,13 +42,13 @@ function Profile() {
             setLoading(true);
             setError('');
             const response = await api.get(`/user/${user.id}`, {
-                headers: {Authorization: `Bearer ${token}`},
+                ...authHeaders(token),
                 signal,
             });
             setUserInfo(response.data);
         } catch (err) {
             if (axios.isCancel(err)) return; // Abort silencieux, ce n'est pas une erreur.
-            setError('Failed to load user information');
+            setError(getAxiosErrorMessage(err, 'Failed to load user information'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -67,13 +69,11 @@ function Profile() {
         try {
             setDeleteError('');
             setDeleteLoading(true);
-            await api.delete(`/user/${user!.id}`, {
-                headers: {Authorization: `Bearer ${token}`},
-            });
+            await api.delete(`/user/${user!.id}`, authHeaders(token));
             authService.logout();
             navigate('/login');
         } catch (err) {
-            setDeleteError('Failed to delete account');
+            setDeleteError(getAxiosErrorMessage(err, 'Failed to delete account'));
             console.error(err);
         } finally {
             setDeleteLoading(false);
@@ -84,13 +84,11 @@ function Profile() {
         try {
             setPromoteError('');
             setPromoteLoading(true);
-            const response = await api.post('/user/promote-admin', {}, {
-                headers: {Authorization: `Bearer ${token}`},
-            });
+            const response = await api.post('/user/promote-admin', {}, authHeaders(token));
             setUserInfo(response.data);
             authService.updateCurrentUser({admin: response.data.admin});
         } catch (err) {
-            setPromoteError('Failed to promote to admin');
+            setPromoteError(getAxiosErrorMessage(err, 'Failed to promote to admin'));
             console.error(err);
         } finally {
             setPromoteLoading(false);
@@ -136,11 +134,7 @@ function Profile() {
                             </ProfileField>
 
                             <ProfileField label="Member Since">
-                                {new Date(userInfo.createdAt!).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                })}
+                                {formatDate(userInfo.createdAt!, { year: 'numeric', month: 'long', day: 'numeric' })}
                             </ProfileField>
                         </div>
 

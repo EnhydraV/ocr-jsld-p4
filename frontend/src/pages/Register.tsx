@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { useRequestState } from '../hooks/useRequestState';
+import { getAxiosErrorMessage } from '../utils/http';
 import FormField from '../components/FormField';
 import FormError from '../components/FormError';
 
@@ -27,8 +28,8 @@ function Register() {
     try {
       await authService.register(formData);
       navigate('/sessions');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

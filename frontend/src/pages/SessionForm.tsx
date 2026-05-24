@@ -5,6 +5,8 @@ import api from '../services/api';
 import { Teacher, Session, SessionFormData } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
+import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { toInputDate } from '../utils/date';
 import FormField from '../components/FormField';
 import SelectField from '../components/SelectField';
 import TextAreaField from '../components/TextAreaField';
@@ -34,13 +36,13 @@ function SessionForm() {
   const fetchTeachers = useCallback(async (signal?: AbortSignal) => {
     try {
       const response = await api.get<Teacher[]>('/teacher', {
-        headers: { Authorization: `Bearer ${token}` },
+        ...authHeaders(token),
         signal,
       });
       setTeachers(response.data);
     } catch (err) {
       if (axios.isCancel(err)) return;
-      setError('Failed to fetch teachers');
+      setError(getAxiosErrorMessage(err, 'Failed to fetch teachers'));
       console.error(err);
     }
   }, [token, setError]);
@@ -48,19 +50,19 @@ function SessionForm() {
   const fetchSession = useCallback(async (signal?: AbortSignal) => {
     try {
       const response = await api.get<Session>(`/session/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        ...authHeaders(token),
         signal,
       });
       const session = response.data;
       setFormData({
         name: session.name,
-        date: new Date(session.date).toISOString().split('T')[0],
+        date: toInputDate(session.date),
         description: session.description,
         teacherId: session.teacher.id,
       });
     } catch (err) {
       if (axios.isCancel(err)) return;
-      setError('Failed to load session');
+      setError(getAxiosErrorMessage(err, 'Failed to load session'));
       console.error(err);
     }
   }, [id, token, setError]);
@@ -84,13 +86,13 @@ function SessionForm() {
 
     try {
       if (isEditMode) {
-        await api.put(`/session/${id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
+        await api.put(`/session/${id}`, formData, authHeaders(token));
       } else {
-        await api.post('/session', formData, { headers: { Authorization: `Bearer ${token}` } });
+        await api.post('/session', formData, authHeaders(token));
       }
       navigate('/sessions');
     } catch (err) {
-      setError(axios.isAxiosError(err) ? err.response?.data?.message || 'Failed to save session' : 'Failed to save session');
+      setError(getAxiosErrorMessage(err, 'Failed to save session'));
     } finally {
       setLoading(false);
     }
