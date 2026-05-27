@@ -1,13 +1,13 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
 import axios from "axios";
-import api from '../services/api';
 import {useRequestState} from '../hooks/useRequestState';
 import {useAuth} from '../hooks/useAuth';
-import {authHeaders, getAxiosErrorMessage} from '../utils/http';
+import {getAxiosErrorMessage} from '../utils/http';
 import {formatDate} from '../utils/date';
 import FormError from '../components/FormError';
 import {authService} from '../services/auth.service';
+import {userService} from '../services/user.service';
 import {User} from "../types";
 
 const ProfileField = ({label, children}: { label: string; children: React.ReactNode }) => (
@@ -41,11 +41,8 @@ function Profile() {
         try {
             setLoading(true);
             setError('');
-            const response = await api.get(`/user/${user.id}`, {
-                ...authHeaders(token),
-                signal,
-            });
-            setUserInfo(response.data);
+            const userInfo = await userService.getUser(token, user.id, signal);
+            setUserInfo(userInfo);
         } catch (err) {
             if (axios.isCancel(err)) return; // Abort silencieux, ce n'est pas une erreur.
             setError(getAxiosErrorMessage(err, 'Failed to load user information'));
@@ -69,7 +66,7 @@ function Profile() {
         try {
             setDeleteError('');
             setDeleteLoading(true);
-            await api.delete(`/user/${user!.id}`, authHeaders(token));
+            await userService.deleteUser(token, user!.id);
             authService.logout();
             navigate('/login');
         } catch (err) {
@@ -84,9 +81,9 @@ function Profile() {
         try {
             setPromoteError('');
             setPromoteLoading(true);
-            const response = await api.post('/user/promote-admin', {}, authHeaders(token));
-            setUserInfo(response.data);
-            authService.updateCurrentUser({admin: response.data.admin});
+            const updated = await userService.promoteAdmin(token);
+            setUserInfo(updated);
+            authService.updateCurrentUser({admin: updated.admin});
         } catch (err) {
             setPromoteError(getAxiosErrorMessage(err, 'Failed to promote to admin'));
             console.error(err);

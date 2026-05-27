@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import api from '../services/api';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
-import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { getAxiosErrorMessage } from '../utils/http';
 import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
+import { sessionService } from '../services/session.service';
 
 function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -19,11 +19,8 @@ function Sessions() {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get<Session[]>('/session', {
-        ...authHeaders(token),
-        signal,
-      });
-      setSessions(response.data);
+      const sessions = await sessionService.getSessions(token, signal);
+      setSessions(sessions);
     } catch (err) {
       if (axios.isCancel(err)) return;
       setError(getAxiosErrorMessage(err, 'Failed to load sessions'));
@@ -44,7 +41,7 @@ function Sessions() {
     try {
       setDeleteLoading(true);
       setDeleteError('');
-      await api.delete(`/session/${sessionId}`, authHeaders(token));
+      await sessionService.deleteSession(token, sessionId);
       fetchSessions();
     } catch (err) {
       setDeleteError(getAxiosErrorMessage(err, 'Failed to delete session'));

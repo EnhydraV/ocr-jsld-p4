@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import api from '../services/api';
-import { Teacher, Session, SessionFormData } from '../types';
+import { Teacher, SessionFormData } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
-import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { getAxiosErrorMessage } from '../utils/http';
 import { toInputDate } from '../utils/date';
 import FormField from '../components/FormField';
 import SelectField from '../components/SelectField';
 import TextAreaField from '../components/TextAreaField';
 import FormError from '../components/FormError';
+import { sessionService } from '../services/session.service';
+import { teacherService } from '../services/teacher.service';
 
 function SessionForm() {
   const navigate = useNavigate();
@@ -35,11 +36,8 @@ function SessionForm() {
 
   const fetchTeachers = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await api.get<Teacher[]>('/teacher', {
-        ...authHeaders(token),
-        signal,
-      });
-      setTeachers(response.data);
+      const teachers = await teacherService.getTeachers(token, signal);
+      setTeachers(teachers);
     } catch (err) {
       if (axios.isCancel(err)) return;
       setError(getAxiosErrorMessage(err, 'Failed to fetch teachers'));
@@ -49,11 +47,7 @@ function SessionForm() {
 
   const fetchSession = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await api.get<Session>(`/session/${id}`, {
-        ...authHeaders(token),
-        signal,
-      });
-      const session = response.data;
+      const session = await sessionService.getSession(token, id!, signal);
       setFormData({
         name: session.name,
         date: toInputDate(session.date),
@@ -86,9 +80,9 @@ function SessionForm() {
 
     try {
       if (isEditMode) {
-        await api.put(`/session/${id}`, formData, authHeaders(token));
+        await sessionService.updateSession(token, id!, formData);
       } else {
-        await api.post('/session', formData, authHeaders(token));
+        await sessionService.createSession(token, formData);
       }
       navigate('/sessions');
     } catch (err) {

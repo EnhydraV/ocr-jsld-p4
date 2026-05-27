@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import api from '../services/api';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
-import { authHeaders, getAxiosErrorMessage } from '../utils/http';
+import { getAxiosErrorMessage } from '../utils/http';
 import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
+import { sessionService } from '../services/session.service';
 
 function SessionDetail() {
   const { id } = useParams();
@@ -22,11 +22,8 @@ function SessionDetail() {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get<Session>(`/session/${id}`, {
-        ...authHeaders(token),
-        signal,
-      });
-      setSession(response.data);
+      const session = await sessionService.getSession(token, id!, signal);
+      setSession(session);
     } catch (err) {
       if (axios.isCancel(err)) return;
       setError(getAxiosErrorMessage(err, 'Failed to load session details'));
@@ -46,7 +43,7 @@ function SessionDetail() {
     try {
       setParticipateLoading(true);
       setParticipateError('');
-      await api.post(`/session/${id}/participate/${user!.id}`, {}, authHeaders(token));
+      await sessionService.participate(token, id!, user!.id);
       fetchSession();
     } catch (err) {
       setParticipateError(getAxiosErrorMessage(err, 'Failed to join session'));
@@ -60,7 +57,7 @@ function SessionDetail() {
     try {
       setParticipateLoading(true);
       setParticipateError('');
-      await api.delete(`/session/${id}/participate/${user!.id}`, authHeaders(token));
+      await sessionService.unparticipate(token, id!, user!.id);
       fetchSession();
     } catch (err) {
       setParticipateError(getAxiosErrorMessage(err, 'Failed to leave session'));
@@ -75,7 +72,7 @@ function SessionDetail() {
     try {
       setDeleteLoading(true);
       setDeleteError('');
-      await api.delete(`/session/${id}`, authHeaders(token));
+      await sessionService.deleteSession(token, id!);
       navigate('/sessions');
     } catch (err) {
       setDeleteError(getAxiosErrorMessage(err, 'Failed to delete session'));
