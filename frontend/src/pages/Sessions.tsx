@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
@@ -8,33 +7,18 @@ import { getAxiosErrorMessage } from '../utils/http';
 import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
 import { sessionService } from '../services/session.service';
+import { useFetch } from '../hooks/useFetch';
 
 function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const { loading, setLoading, error, setError } = useRequestState(true);
   const { loading: deleteLoading, setLoading: setDeleteLoading, error: deleteError, setError: setDeleteError } = useRequestState();
   const { user, token } = useAuth();
 
-  const fetchSessions = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setLoading(true);
-      setError('');
-      const sessions = await sessionService.getSessions(token, signal);
-      setSessions(sessions);
-    } catch (err) {
-      if (axios.isCancel(err)) return;
-      setError(getAxiosErrorMessage(err, 'Failed to load sessions'));
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, setLoading, setError]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchSessions(controller.signal);
-    return () => controller.abort();
-  }, [fetchSessions]);
+  const { loading, error, refetch: fetchSessions } = useFetch(
+    useCallback((signal) => sessionService.getSessions(token, signal), [token]),
+    setSessions,
+    'Failed to load sessions',
+  );
 
   const handleDelete = async (sessionId: number) => {
     if (!window.confirm('Are you sure you want to delete this session?')) return;

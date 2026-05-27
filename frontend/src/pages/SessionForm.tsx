@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { Teacher, SessionFormData } from '../types';
+import { Teacher, Session, SessionFormData } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
 import { getAxiosErrorMessage } from '../utils/http';
@@ -12,6 +11,7 @@ import TextAreaField from '../components/TextAreaField';
 import FormError from '../components/FormError';
 import { sessionService } from '../services/session.service';
 import { teacherService } from '../services/teacher.service';
+import { useFetch } from '../hooks/useFetch';
 
 function SessionForm() {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ function SessionForm() {
     teacherId: 0,
   });
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const { loading, setLoading, error, setError } = useRequestState();
+  const { loading, setLoading, error: submitError, setError } = useRequestState();
   const { user, token } = useAuth();
 
   useEffect(() => {
@@ -34,39 +34,30 @@ function SessionForm() {
     }
   }, [user, navigate]);
 
-  const fetchTeachers = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const teachers = await teacherService.getTeachers(token, signal);
-      setTeachers(teachers);
-    } catch (err) {
-      if (axios.isCancel(err)) return;
-      setError(getAxiosErrorMessage(err, 'Failed to fetch teachers'));
-      console.error(err);
-    }
-  }, [token, setError]);
+  const onSessionLoaded = useCallback((session: Session) => {
+    setFormData({
+      name: session.name,
+      date: toInputDate(session.date),
+      description: session.description,
+      teacherId: session.teacher.id,
+    });
+  }, []);
 
-  const fetchSession = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const session = await sessionService.getSession(token, id!, signal);
-      setFormData({
-        name: session.name,
-        date: toInputDate(session.date),
-        description: session.description,
-        teacherId: session.teacher.id,
-      });
-    } catch (err) {
-      if (axios.isCancel(err)) return;
-      setError(getAxiosErrorMessage(err, 'Failed to load session'));
-      console.error(err);
-    }
-  }, [id, token, setError]);
+  const { error: teachersError } = useFetch(
+    useCallback((signal) => teacherService.getTeachers(token, signal), [token]),
+    setTeachers,
+    'Failed to fetch teachers',
+    { initialLoading: false },
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTeachers(controller.signal);
-    if (isEditMode) fetchSession(controller.signal);
-    return () => controller.abort();
-  }, [fetchTeachers, fetchSession, isEditMode]);
+  const { error: sessionFetchError } = useFetch(
+    useCallback((signal) => sessionService.getSession(token, id!, signal), [token, id]),
+    onSessionLoaded,
+    'Failed to load session',
+    { enabled: isEditMode, initialLoading: false },
+  );
+
+  const error = teachersError || sessionFetchError || submitError;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.name === 'teacherId' ? parseInt(e.target.value) : e.target.value;

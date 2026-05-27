@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { Session } from '../types';
 import { useRequestState } from '../hooks/useRequestState';
 import { useAuth } from '../hooks/useAuth';
@@ -8,36 +7,21 @@ import { getAxiosErrorMessage } from '../utils/http';
 import { formatDate } from '../utils/date';
 import FormError from '../components/FormError';
 import { sessionService } from '../services/session.service';
+import { useFetch } from '../hooks/useFetch';
 
 function SessionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
-  const { loading, setLoading, error, setError } = useRequestState(true);
   const { loading: participateLoading, setLoading: setParticipateLoading, error: participateError, setError: setParticipateError } = useRequestState();
   const { loading: deleteLoading, setLoading: setDeleteLoading, error: deleteError, setError: setDeleteError } = useRequestState();
   const { user, token } = useAuth();
 
-  const fetchSession = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setLoading(true);
-      setError('');
-      const session = await sessionService.getSession(token, id!, signal);
-      setSession(session);
-    } catch (err) {
-      if (axios.isCancel(err)) return;
-      setError(getAxiosErrorMessage(err, 'Failed to load session details'));
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, token, setLoading, setError]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchSession(controller.signal);
-    return () => controller.abort();
-  }, [fetchSession]);
+  const { loading, error, refetch: fetchSession } = useFetch(
+    useCallback((signal) => sessionService.getSession(token, id!, signal), [token, id]),
+    setSession,
+    'Failed to load session details',
+  );
 
   const handleParticipate = async () => {
     try {

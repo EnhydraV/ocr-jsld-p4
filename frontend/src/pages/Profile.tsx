@@ -1,6 +1,5 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
-import axios from "axios";
 import {useRequestState} from '../hooks/useRequestState';
 import {useAuth} from '../hooks/useAuth';
 import {getAxiosErrorMessage} from '../utils/http';
@@ -8,6 +7,7 @@ import {formatDate} from '../utils/date';
 import FormError from '../components/FormError';
 import {authService} from '../services/auth.service';
 import {userService} from '../services/user.service';
+import {useFetch} from '../hooks/useFetch';
 import {User} from "../types";
 
 const ProfileField = ({label, children}: { label: string; children: React.ReactNode }) => (
@@ -20,7 +20,6 @@ const ProfileField = ({label, children}: { label: string; children: React.ReactN
 function Profile() {
     const navigate = useNavigate();
     const [userInfo, setUserInfo] = useState<User | null>(null);
-    const {loading, setLoading, error, setError} = useRequestState(true);
     const {
         loading: promoteLoading,
         setLoading: setPromoteLoading,
@@ -36,27 +35,12 @@ function Profile() {
     const {user, token} = useAuth();
     const isDev = (import.meta as any).env?.DEV === true;
 
-    const fetchUserInfo = useCallback(async (signal?: AbortSignal) => {
-        if (!user) return;
-        try {
-            setLoading(true);
-            setError('');
-            const userInfo = await userService.getUser(token, user.id, signal);
-            setUserInfo(userInfo);
-        } catch (err) {
-            if (axios.isCancel(err)) return; // Abort silencieux, ce n'est pas une erreur.
-            setError(getAxiosErrorMessage(err, 'Failed to load user information'));
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, [user, token, setLoading, setError]);
-
-    useEffect(() => {
-        const controller = new AbortController();
-        fetchUserInfo(controller.signal);
-        return () => controller.abort();
-    }, [fetchUserInfo]);
+    const { loading, error } = useFetch(
+        useCallback((signal) => userService.getUser(token, user!.id, signal), [token, user]),
+        setUserInfo,
+        'Failed to load user information',
+        { enabled: !!user },
+    );
 
     const handleDeleteAccount = async () => {
         if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
