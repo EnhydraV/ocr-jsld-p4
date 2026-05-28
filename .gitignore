@@ -24,6 +24,7 @@ build/
 *.swo
 *~
 .claude
+NOTES_PERSO.md
 
 # OS
 .DS_Store
@@ -43,3 +44,4 @@ logs/
 
 # Prisma
 backend/prisma/migrations/
+
