@@ -12,54 +12,60 @@ vi.mock('../services/auth.service', () => ({
   },
 }));
 
+const USER = {
+  id: 1, email: 'victor@yoga.com', firstName: 'Victor', lastName: 'Pille', admin: false, token: 'tok-123456789',
+};
+
+const ADMIN = {
+  ...USER, id: 2, email: 'juliette@yoga.com', firstName: 'Juliette', lastName: 'Michel', admin: true,
+};
+
 function renderNavbar() {
   return render(<MemoryRouter><Navbar /></MemoryRouter>);
 }
 
-describe('Navbar — non connecté', () => {
+describe('Navbar — not logged in', () => {
   beforeEach(() => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(false);
     vi.mocked(authService.getCurrentUser).mockReturnValue(null);
   });
 
-  it('affiche les liens Login et Register', () => {
+  it('displays the Login and Register links', () => {
     renderNavbar();
     expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Register' })).toBeInTheDocument();
   });
 
-  it('ne montre pas les liens Sessions ni Profile', () => {
+  it('does not show the Sessions or Profile links', () => {
     renderNavbar();
     expect(screen.queryByRole('link', { name: 'Sessions' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument();
   });
 });
 
-describe('Navbar — utilisateur connecté', () => {
+describe('Navbar — logged-in user', () => {
   beforeEach(() => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(true);
-    vi.mocked(authService.getCurrentUser).mockReturnValue({
-      id: 1, email: 'user@test.com', firstName: 'Alice', lastName: 'Smith', admin: false, token: 'tok',
-    });
+    vi.mocked(authService.getCurrentUser).mockReturnValue(USER);
   });
 
-  it('affiche les liens Sessions et Profile', () => {
+  it('displays the Sessions and Profile links', () => {
     renderNavbar();
     expect(screen.getByRole('link', { name: 'Sessions' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Profile' })).toBeInTheDocument();
   });
 
-  it('ne montre pas le lien Create Session', () => {
+  it('does not show the Create Session link', () => {
     renderNavbar();
     expect(screen.queryByRole('link', { name: 'Create Session' })).not.toBeInTheDocument();
   });
 
-  it('affiche le bouton Logout', () => {
+  it('displays the Logout button', () => {
     renderNavbar();
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument();
   });
 
-  it('appelle authService.logout au clic sur Logout', async () => {
+  it('calls authService.logout when clicking Logout', async () => {
     const user = userEvent.setup();
     renderNavbar();
     await user.click(screen.getByRole('button', { name: 'Logout' }));
@@ -67,15 +73,13 @@ describe('Navbar — utilisateur connecté', () => {
   });
 });
 
-describe('Navbar — admin connecté', () => {
+describe('Navbar — logged-in admin', () => {
   beforeEach(() => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(true);
-    vi.mocked(authService.getCurrentUser).mockReturnValue({
-      id: 2, email: 'admin@test.com', firstName: 'Admin', lastName: 'User', admin: true, token: 'tok',
-    });
+    vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN);
   });
 
-  it('affiche le lien Create Session', () => {
+  it('displays the Create Session link', () => {
     renderNavbar();
     expect(screen.getByRole('link', { name: 'Create Session' })).toBeInTheDocument();
   });

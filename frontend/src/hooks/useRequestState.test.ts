@@ -3,18 +3,18 @@ import { act, renderHook } from '@testing-library/react';
 import { useRequestState } from './useRequestState';
 
 describe('useRequestState', () => {
-  it('démarre avec loading=false par défaut', () => {
+  it('starts with loading=false by default', () => {
     const { result } = renderHook(() => useRequestState());
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBe('');
   });
 
-  it('respecte la valeur initiale de loading', () => {
+  it('respects the initial loading value', () => {
     const { result } = renderHook(() => useRequestState(true));
     expect(result.current.loading).toBe(true);
   });
 
-  it('met à jour loading via setLoading', () => {
+  it('updates loading via setLoading', () => {
     const { result } = renderHook(() => useRequestState());
     act(() => result.current.setLoading(true));
     expect(result.current.loading).toBe(true);
@@ -22,7 +22,7 @@ describe('useRequestState', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it('met à jour error via setError', () => {
+  it('updates error via setError', () => {
     const { result } = renderHook(() => useRequestState());
     act(() => result.current.setError('boom'));
     expect(result.current.error).toBe('boom');

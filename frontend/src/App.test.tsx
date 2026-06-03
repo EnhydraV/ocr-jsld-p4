@@ -33,13 +33,17 @@ vi.mock('./pages/Profile', () => ({
   default: () => <div>page:Profile</div>,
 }));
 
+const USER = {
+  id: 1, email: 'victor@yoga.com', firstName: 'Victor', lastName: 'Pille', admin: false, token: 'tok-123456789',
+};
+
 describe('App (routing)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(authService.getCurrentUser).mockReturnValue(null);
   });
 
-  it('rend la Navbar dans tous les cas', () => {
+  it('renders the Navbar in all cases', () => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(false);
     window.history.pushState({}, '', '/login');
     render(<App />);
@@ -47,14 +51,14 @@ describe('App (routing)', () => {
     expect(screen.getByText('Yoga Studio')).toBeInTheDocument();
   });
 
-  it('affiche Login sur /login', () => {
+  it('displays Login on /login', () => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(false);
     window.history.pushState({}, '', '/login');
     render(<App />);
     expect(screen.getByText('page:Login')).toBeInTheDocument();
   });
 
-  it('PrivateRoute redirige vers /login si non authentifié', () => {
+  it('PrivateRoute redirects to /login if not authenticated', () => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(false);
     window.history.pushState({}, '', '/sessions');
     render(<App />);
@@ -63,21 +67,17 @@ describe('App (routing)', () => {
     expect(screen.queryByText('page:Sessions')).not.toBeInTheDocument();
   });
 
-  it('PrivateRoute laisse passer les utilisateurs authentifiés', () => {
+  it('PrivateRoute lets authenticated users through', () => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(true);
-    vi.mocked(authService.getCurrentUser).mockReturnValue({
-      id: 1, email: 'a@b.c', firstName: 'A', lastName: 'B', admin: false, token: 't',
-    });
+    vi.mocked(authService.getCurrentUser).mockReturnValue(USER);
     window.history.pushState({}, '', '/sessions');
     render(<App />);
     expect(screen.getByText('page:Sessions')).toBeInTheDocument();
   });
 
-  it('/ redirige vers /sessions', () => {
+  it('/ redirects to /sessions', () => {
     vi.mocked(authService.isAuthenticated).mockReturnValue(true);
-    vi.mocked(authService.getCurrentUser).mockReturnValue({
-      id: 1, email: 'a@b.c', firstName: 'A', lastName: 'B', admin: false, token: 't',
-    });
+    vi.mocked(authService.getCurrentUser).mockReturnValue(USER);
     window.history.pushState({}, '', '/');
     render(<App />);
     expect(screen.getByText('page:Sessions')).toBeInTheDocument();

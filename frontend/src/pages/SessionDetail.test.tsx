@@ -30,26 +30,29 @@ vi.mock('../services/session.service', () => ({
   },
 }));
 
+const TOKEN = 'tok-123456789';
+
 const NORMAL_USER = {
-  id: 10, email: 'u@x.c', firstName: 'U', lastName: 'U', admin: false, token: 't',
+  id: 1, email: 'victor@yoga.com', firstName: 'Victor', lastName: 'Pille',
+  admin: false, token: TOKEN, createdAt: '2026-01-15T10:00:00.000Z',
 };
 
 const ADMIN_USER = {
-  id: 99, email: 'a@x.c', firstName: 'A', lastName: 'A', admin: true, token: 't',
+  ...NORMAL_USER, id: 2, email: 'juliette@yoga.com', firstName: 'Juliette', lastName: 'Michel', admin: true,
 };
 
 const SESSION_BASE = {
   id: 7,
-  name: 'Vinyasa',
+  name: 'Salutation au soleil',
   date: '2026-07-15T09:00:00.000Z',
-  description: 'A dynamic flow',
-  teacher: { id: 1, firstName: 'Alice', lastName: 'Doe' },
+  description: 'Un flow dynamique',
+  teacher: { id: 3, firstName: 'Charlie', lastName: 'Zterone' },
   users: [] as number[],
 };
 
 function renderDetail() {
   return render(
-    <MemoryRouter initialEntries={['/sessions/7']}>
+    <MemoryRouter initialEntries={[`/sessions/${SESSION_BASE.id}`]}>
       <Routes>
         <Route path="/sessions/:id" element={<SessionDetail />} />
       </Routes>
@@ -57,31 +60,31 @@ function renderDetail() {
   );
 }
 
-describe('SessionDetail (intégration)', () => {
+describe('SessionDetail (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(authService.getToken).mockReturnValue('t');
+    vi.mocked(authService.getToken).mockReturnValue(TOKEN);
   });
 
-  it('affiche "Loading session..." pendant le chargement', () => {
+  it('displays "Loading session..." during the load', () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     vi.mocked(sessionService.getSession).mockReturnValue(new Promise(() => {}));
     renderDetail();
     expect(screen.getByText(/loading session/i)).toBeInTheDocument();
   });
 
-  it('affiche le nom, la date, le teacher et la description une fois chargé', async () => {
+  it('displays the name, date, teacher and description once loaded', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
 
     renderDetail();
 
-    expect(await screen.findByRole('heading', { name: 'Vinyasa' })).toBeInTheDocument();
-    expect(screen.getByText(/Alice Doe/)).toBeInTheDocument();
-    expect(screen.getByText(/A dynamic flow/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: SESSION_BASE.name })).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`${SESSION_BASE.teacher.firstName} ${SESSION_BASE.teacher.lastName}`))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(SESSION_BASE.description))).toBeInTheDocument();
   });
 
-  it('affiche le message d\'erreur si le chargement échoue', async () => {
+  it('displays the error message if the load fails', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     const err = new AxiosError('fail');
     err.response = {
@@ -94,7 +97,7 @@ describe('SessionDetail (intégration)', () => {
     expect(await screen.findByText('Not found')).toBeInTheDocument();
   });
 
-  it('affiche "Join Session" pour un user non inscrit, et l\'inscrit au clic', async () => {
+  it('displays "Join Session" for a user not registered, and registers them on click', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     vi.mocked(sessionService.participate).mockResolvedValue(undefined);
@@ -103,22 +106,22 @@ describe('SessionDetail (intégration)', () => {
     renderDetail();
     await user.click(await screen.findByRole('button', { name: /join session/i }));
 
-    await waitFor(() => expect(sessionService.participate).toHaveBeenCalledWith('t', '7', 10));
+    await waitFor(() => expect(sessionService.participate).toHaveBeenCalledWith(TOKEN, String(SESSION_BASE.id), NORMAL_USER.id));
   });
 
-  it('affiche "Leave Session" pour un user déjà inscrit, et le désinscrit au clic', async () => {
+  it('displays "Leave Session" for a user already registered, and unregisters them on click', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
-    vi.mocked(sessionService.getSession).mockResolvedValue({ ...SESSION_BASE, users: [10] });
+    vi.mocked(sessionService.getSession).mockResolvedValue({ ...SESSION_BASE, users: [NORMAL_USER.id] });
     vi.mocked(sessionService.unparticipate).mockResolvedValue(undefined);
     const user = userEvent.setup();
 
     renderDetail();
     await user.click(await screen.findByRole('button', { name: /leave session/i }));
 
-    await waitFor(() => expect(sessionService.unparticipate).toHaveBeenCalledWith('t', '7', 10));
+    await waitFor(() => expect(sessionService.unparticipate).toHaveBeenCalledWith(TOKEN, String(SESSION_BASE.id), NORMAL_USER.id));
   });
 
-  it('affiche le message d\'erreur si participate échoue', async () => {
+  it('displays the error message if participate fails', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     const err = new AxiosError('fail');
@@ -135,7 +138,7 @@ describe('SessionDetail (intégration)', () => {
     expect(await screen.findByText('Already full')).toBeInTheDocument();
   });
 
-  it('affiche les boutons Edit et Delete pour un admin', async () => {
+  it('displays the Edit and Delete buttons for an admin', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
 
@@ -146,7 +149,7 @@ describe('SessionDetail (intégration)', () => {
     expect(screen.queryByRole('button', { name: /join session/i })).not.toBeInTheDocument();
   });
 
-  it('Edit redirige vers la page d\'édition', async () => {
+  it('Edit redirects to the edit page', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     const user = userEvent.setup();
@@ -154,10 +157,10 @@ describe('SessionDetail (intégration)', () => {
     renderDetail();
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/sessions/edit/7');
+    expect(mockNavigate).toHaveBeenCalledWith(`/sessions/edit/${SESSION_BASE.id}`);
   });
 
-  it('Delete supprime la session et redirige après confirmation', async () => {
+  it('Delete removes the session and redirects after confirmation', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     vi.mocked(sessionService.deleteSession).mockResolvedValue(undefined);
@@ -167,11 +170,11 @@ describe('SessionDetail (intégration)', () => {
     renderDetail();
     await user.click(await screen.findByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(sessionService.deleteSession).toHaveBeenCalledWith('t', '7'));
+    await waitFor(() => expect(sessionService.deleteSession).toHaveBeenCalledWith(TOKEN, String(SESSION_BASE.id)));
     expect(mockNavigate).toHaveBeenCalledWith('/sessions');
   });
 
-  it('Delete ne fait rien si l\'admin annule la confirmation', async () => {
+  it('Delete does nothing if the admin cancels the confirmation', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -183,7 +186,7 @@ describe('SessionDetail (intégration)', () => {
     expect(sessionService.deleteSession).not.toHaveBeenCalled();
   });
 
-  it('"Back to Sessions" navigue vers /sessions', async () => {
+  it('"Back to Sessions" navigates to /sessions', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
     vi.mocked(sessionService.getSession).mockResolvedValue(SESSION_BASE);
     const user = userEvent.setup();

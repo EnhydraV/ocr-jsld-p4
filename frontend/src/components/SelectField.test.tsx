@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import SelectField from './SelectField';
 
 const options = [
-  { value: 1, label: 'Alice' },
-  { value: 2, label: 'Bob' },
+  { value: 3, label: 'Charlie Zterone' },
+  { value: 4, label: 'Oscar Isé' },
 ];
 
 describe('SelectField', () => {
@@ -14,8 +14,8 @@ describe('SelectField', () => {
 
   it('renders all options', () => {
     render(<SelectField label="Teacher" options={options} />);
-    expect(screen.getByRole('option', { name: 'Alice' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Bob' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Charlie Zterone' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Oscar Isé' })).toBeInTheDocument();
   });
 
   it('renders placeholder option when provided', () => {

@@ -32,7 +32,14 @@ Thumbs.db
 
 # Testing
 coverage/
+coverage-e2e/
+.nyc_output/
 *.lcov
+
+# Cypress
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/downloads/
 
 # Logs
 logs/

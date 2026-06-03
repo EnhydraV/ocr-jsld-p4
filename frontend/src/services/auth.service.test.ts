@@ -1,127 +1,145 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authService } from './auth.service';
+import {describe, it, expect, vi, beforeEach} from 'vitest';
+import {authService} from './auth.service';
 import api from './api';
 
 vi.mock('./api', () => ({
-  default: {
-    post: vi.fn(),
-  },
+    default: {
+        post: vi.fn(),
+    },
 }));
 
-const fakeAuthResponse = {
-  id: 1,
-  email: 'a@b.c',
-  firstName: 'Alice',
-  lastName: 'Smith',
-  admin: false,
-  token: 'tok-123',
+const mockUser={
+    id: 1,
+    email: 'victor@yoga.com',
+    firstName: 'Victor',
+    lastName: 'Pille',
+}
+
+const mockAuthResponse = {
+    ...mockUser,
+    admin: false,
+    token: 'tok-123456789',
 };
 
+const password = 'Azerty#0';
+
+const loginCredentials = {
+    email: mockAuthResponse.email,
+    password,
+};
+
+const registerData = {
+    email: mockUser.email,
+    password,
+    firstName: mockUser.firstName,
+    lastName: mockUser.lastName,
+};
+
+const updateData = {
+    firstName: 'Juliette',
+    lastName: 'Michel',
+}
+
 describe('authService.login', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
-  });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+    });
 
-  it('appelle /auth/login et stocke token + user dans localStorage', async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: fakeAuthResponse });
+    it('calls /auth/login and stores token + user in localStorage', async () => {
+        vi.mocked(api.post).mockResolvedValue({data: mockAuthResponse});
 
-    const result = await authService.login({ email: 'a@b.c', password: 'pwd' });
+        const result = await authService.login(loginCredentials);
 
-    expect(api.post).toHaveBeenCalledWith('/auth/login', { email: 'a@b.c', password: 'pwd' });
-    expect(localStorage.getItem('token')).toBe('tok-123');
-    expect(JSON.parse(localStorage.getItem('user')!)).toEqual(fakeAuthResponse);
-    expect(result).toEqual(fakeAuthResponse);
-  });
+        expect(api.post).toHaveBeenCalledWith('/auth/login', loginCredentials);
+        expect(localStorage.getItem('token')).toBe(mockAuthResponse.token);
+        expect(JSON.parse(localStorage.getItem('user')!)).toEqual(mockAuthResponse);
+        expect(result).toEqual(mockAuthResponse);
+    });
 
-  it('ne stocke rien si la réponse ne contient pas de token', async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: { ...fakeAuthResponse, token: '' } });
+    it('stores nothing when the response has no token', async () => {
+        vi.mocked(api.post).mockResolvedValue({data: {...mockAuthResponse, token: ''}});
 
-    await authService.login({ email: 'a@b.c', password: 'pwd' });
+        await authService.login(loginCredentials);
 
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-  });
+        expect(localStorage.getItem('token')).toBeNull();
+        expect(localStorage.getItem('user')).toBeNull();
+    });
 });
 
 describe('authService.register', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
-  });
-
-  it('appelle /auth/register et stocke les données', async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: fakeAuthResponse });
-
-    await authService.register({
-      email: 'a@b.c', password: 'pwd', firstName: 'Alice', lastName: 'Smith',
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
     });
 
-    expect(api.post).toHaveBeenCalledWith(
-      '/auth/register',
-      { email: 'a@b.c', password: 'pwd', firstName: 'Alice', lastName: 'Smith' },
-    );
-    expect(localStorage.getItem('token')).toBe('tok-123');
-  });
+    it('calls /auth/register and stores the data', async () => {
+        vi.mocked(api.post).mockResolvedValue({data: mockAuthResponse});
+
+        await authService.register(registerData);
+
+        expect(api.post).toHaveBeenCalledWith('/auth/register', registerData);
+        expect(localStorage.getItem('token')).toBe(mockAuthResponse.token);
+    });
 });
 
 describe('authService.logout', () => {
-  it('supprime token et user du localStorage', () => {
-    localStorage.setItem('token', 'tok');
-    localStorage.setItem('user', JSON.stringify(fakeAuthResponse));
+    it('removes token and user from localStorage', () => {
+        localStorage.setItem('token', mockAuthResponse.token);
+        localStorage.setItem('user', JSON.stringify(mockAuthResponse));
 
-    authService.logout();
+        authService.logout();
 
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-  });
+        expect(localStorage.getItem('token')).toBeNull();
+        expect(localStorage.getItem('user')).toBeNull();
+    });
 });
 
 describe('authService.getCurrentUser', () => {
-  beforeEach(() => localStorage.clear());
+    beforeEach(() => localStorage.clear());
 
-  it('retourne l\'utilisateur parsé depuis localStorage', () => {
-    localStorage.setItem('user', JSON.stringify(fakeAuthResponse));
-    expect(authService.getCurrentUser()).toEqual(fakeAuthResponse);
-  });
+    it('returns the user parsed from localStorage', () => {
+        localStorage.setItem('user', JSON.stringify(mockAuthResponse));
+        expect(authService.getCurrentUser()).toEqual(mockAuthResponse);
+    });
 
-  it('retourne null quand rien n\'est stocké', () => {
-    expect(authService.getCurrentUser()).toBeNull();
-  });
+    it('returns null when nothing is stored', () => {
+        expect(authService.getCurrentUser()).toBeNull();
+    });
 });
 
 describe('authService.updateCurrentUser', () => {
-  beforeEach(() => localStorage.clear());
+    beforeEach(() => localStorage.clear());
 
-  it('fusionne les updates avec l\'utilisateur courant', () => {
-    localStorage.setItem('user', JSON.stringify(fakeAuthResponse));
+    it('merges the updates with the current user', () => {
+        localStorage.setItem('user', JSON.stringify(mockAuthResponse));
 
-    const updated = authService.updateCurrentUser({ firstName: 'Bob' });
+        const updated = authService.updateCurrentUser({firstName: updateData.firstName});
 
-    expect(updated?.firstName).toBe('Bob');
-    expect(updated?.lastName).toBe('Smith');
-    expect(JSON.parse(localStorage.getItem('user')!).firstName).toBe('Bob');
-  });
+        expect(updated?.firstName).toBe(updateData.firstName);
+        expect(updated?.lastName).toBe(mockAuthResponse.lastName);
+        expect(JSON.parse(localStorage.getItem('user')!).firstName).toBe(updateData.firstName);
+    });
 
-  it('retourne null si aucun utilisateur n\'est connecté', () => {
-    expect(authService.updateCurrentUser({ firstName: 'Bob' })).toBeNull();
-  });
+    it('returns null when no user is logged in', () => {
+        expect(authService.updateCurrentUser({firstName: updateData.firstName})).toBeNull();
+    });
 });
 
 describe('authService.getToken / isAuthenticated', () => {
-  beforeEach(() => localStorage.clear());
+    beforeEach(() => localStorage.clear());
 
-  it('getToken retourne la valeur stockée', () => {
-    localStorage.setItem('token', 'abc');
-    expect(authService.getToken()).toBe('abc');
-  });
+    it('getToken returns the stored value', () => {
+        localStorage.setItem('token', mockAuthResponse.token);
+        expect(authService.getToken()).toBe(mockAuthResponse.token);
+    });
 
-  it('isAuthenticated est true quand un token existe', () => {
-    localStorage.setItem('token', 'abc');
-    expect(authService.isAuthenticated()).toBe(true);
-  });
+    it('isAuthenticated is true when a token exists', () => {
+        localStorage.setItem('token', mockAuthResponse.token);
+        expect(authService.isAuthenticated()).toBe(true);
+    });
 
-  it('isAuthenticated est false sans token', () => {
-    expect(authService.isAuthenticated()).toBe(false);
-  });
+    it('isAuthenticated is false without a token', () => {
+        expect(authService.isAuthenticated()).toBe(false);
+    });
 });

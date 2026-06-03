@@ -17,6 +17,15 @@ vi.mock('../services/auth.service', () => ({
   authService: { register: vi.fn() },
 }));
 
+const registerData = {
+  email: 'victor@yoga.com', password: 'Azerty#0', firstName: 'Victor', lastName: 'Pille',
+};
+
+const mockAuthResponse = {
+  id: 1, email: registerData.email, firstName: registerData.firstName,
+  lastName: registerData.lastName, admin: false, token: 'tok-123456789',
+};
+
 // FormField ne lie pas label et input, donc on récupère les inputs par nom
 function getInputs() {
   const firstName = document.querySelector('input[name="firstName"]') as HTMLInputElement;
@@ -30,12 +39,12 @@ function renderRegister() {
   return render(<MemoryRouter><Register /></MemoryRouter>);
 }
 
-describe('Register (intégration)', () => {
+describe('Register (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('affiche le titre et les 4 champs', () => {
+  it('displays the title and the 4 fields', () => {
     renderRegister();
     expect(screen.getByRole('heading', { name: /register for yoga studio/i })).toBeInTheDocument();
     const { firstName, lastName, email, password } = getInputs();
@@ -45,27 +54,23 @@ describe('Register (intégration)', () => {
     expect(password).toBeInTheDocument();
   });
 
-  it('soumet le formulaire et redirige vers /sessions en cas de succès', async () => {
-    vi.mocked(authService.register).mockResolvedValue({
-      id: 1, email: 'a@b.c', firstName: 'Alice', lastName: 'Smith', admin: false, token: 't',
-    });
+  it('submits the form and redirects to /sessions on success', async () => {
+    vi.mocked(authService.register).mockResolvedValue(mockAuthResponse);
     const user = userEvent.setup();
 
     renderRegister();
     const { firstName, lastName, email, password } = getInputs();
-    await user.type(firstName, 'Alice');
-    await user.type(lastName, 'Smith');
-    await user.type(email, 'a@b.c');
-    await user.type(password, 'secret12');
+    await user.type(firstName, registerData.firstName);
+    await user.type(lastName, registerData.lastName);
+    await user.type(email, registerData.email);
+    await user.type(password, registerData.password);
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    await waitFor(() => expect(authService.register).toHaveBeenCalledWith({
-      email: 'a@b.c', password: 'secret12', firstName: 'Alice', lastName: 'Smith',
-    }));
+    await waitFor(() => expect(authService.register).toHaveBeenCalledWith(registerData));
     expect(mockNavigate).toHaveBeenCalledWith('/sessions');
   });
 
-  it('affiche le message d\'erreur retourné par l\'API en cas d\'échec', async () => {
+  it('displays the error message returned by the API on failure', async () => {
     const err = new AxiosError('fail');
     err.response = {
       data: { message: 'Email already taken' },
@@ -76,26 +81,26 @@ describe('Register (intégration)', () => {
 
     renderRegister();
     const { firstName, lastName, email, password } = getInputs();
-    await user.type(firstName, 'Alice');
-    await user.type(lastName, 'Smith');
-    await user.type(email, 'taken@b.c');
-    await user.type(password, 'secret12');
+    await user.type(firstName, registerData.firstName);
+    await user.type(lastName, registerData.lastName);
+    await user.type(email, registerData.email);
+    await user.type(password, registerData.password);
     await user.click(screen.getByRole('button', { name: /register/i }));
 
     expect(await screen.findByText('Email already taken')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('affiche le fallback "Registration failed" quand l\'erreur n\'est pas axios', async () => {
+  it('displays the "Registration failed" fallback when the error is not axios', async () => {
     vi.mocked(authService.register).mockRejectedValue(new Error('boom'));
     const user = userEvent.setup();
 
     renderRegister();
     const { firstName, lastName, email, password } = getInputs();
-    await user.type(firstName, 'Alice');
-    await user.type(lastName, 'Smith');
-    await user.type(email, 'a@b.c');
-    await user.type(password, 'secret12');
+    await user.type(firstName, registerData.firstName);
+    await user.type(lastName, registerData.lastName);
+    await user.type(email, registerData.email);
+    await user.type(password, registerData.password);
     await user.click(screen.getByRole('button', { name: /register/i }));
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();

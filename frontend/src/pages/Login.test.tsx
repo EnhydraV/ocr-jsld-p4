@@ -17,6 +17,12 @@ vi.mock('../services/auth.service', () => ({
   authService: { login: vi.fn() },
 }));
 
+const credentials = { email: 'victor@yoga.com', password: 'Azerty#0' };
+
+const mockAuthResponse = {
+  id: 1, email: credentials.email, firstName: 'Victor', lastName: 'Pille', admin: false, token: 'tok-123456789',
+};
+
 // Récupère les inputs sans s'appuyer sur l'association label/input
 // (FormField n'utilise pas htmlFor donc getByLabelText ne fonctionne pas)
 function getInputs() {
@@ -29,12 +35,12 @@ function renderLogin() {
   return render(<MemoryRouter><Login /></MemoryRouter>);
 }
 
-describe('Login (intégration)', () => {
+describe('Login (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('affiche le titre et les deux champs', () => {
+  it('displays the title and both fields', () => {
     renderLogin();
     expect(screen.getByRole('heading', { name: /login to yoga studio/i })).toBeInTheDocument();
     const { email, password } = getInputs();
@@ -42,25 +48,21 @@ describe('Login (intégration)', () => {
     expect(password).toBeInTheDocument();
   });
 
-  it('soumet le formulaire et redirige vers /sessions en cas de succès', async () => {
-    vi.mocked(authService.login).mockResolvedValue({
-      id: 1, email: 'a@b.c', firstName: 'A', lastName: 'B', admin: false, token: 't',
-    });
+  it('submits the form and redirects to /sessions on success', async () => {
+    vi.mocked(authService.login).mockResolvedValue(mockAuthResponse);
     const user = userEvent.setup();
 
     renderLogin();
     const { email, password } = getInputs();
-    await user.type(email, 'a@b.c');
-    await user.type(password, 'secret');
+    await user.type(email, credentials.email);
+    await user.type(password, credentials.password);
     await user.click(screen.getByRole('button', { name: /login/i }));
 
-    await waitFor(() => expect(authService.login).toHaveBeenCalledWith({
-      email: 'a@b.c', password: 'secret',
-    }));
+    await waitFor(() => expect(authService.login).toHaveBeenCalledWith(credentials));
     expect(mockNavigate).toHaveBeenCalledWith('/sessions');
   });
 
-  it('affiche le message d\'erreur retourné par l\'API en cas d\'échec', async () => {
+  it('displays the error message returned by the API on failure', async () => {
     const err = new AxiosError('fail');
     err.response = {
       data: { message: 'Bad credentials' },
@@ -71,22 +73,22 @@ describe('Login (intégration)', () => {
 
     renderLogin();
     const { email, password } = getInputs();
-    await user.type(email, 'a@b.c');
-    await user.type(password, 'wrong');
+    await user.type(email, credentials.email);
+    await user.type(password, credentials.password);
     await user.click(screen.getByRole('button', { name: /login/i }));
 
     expect(await screen.findByText('Bad credentials')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('affiche le fallback "Login failed" quand l\'erreur n\'est pas axios', async () => {
+  it('displays the "Login failed" fallback when the error is not axios', async () => {
     vi.mocked(authService.login).mockRejectedValue(new Error('boom'));
     const user = userEvent.setup();
 
     renderLogin();
     const { email, password } = getInputs();
-    await user.type(email, 'a@b.c');
-    await user.type(password, 'pwd');
+    await user.type(email, credentials.email);
+    await user.type(password, credentials.password);
     await user.click(screen.getByRole('button', { name: /login/i }));
 
     expect(await screen.findByText('Login failed')).toBeInTheDocument();

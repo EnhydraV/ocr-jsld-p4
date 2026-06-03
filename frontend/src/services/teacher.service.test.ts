@@ -6,14 +6,14 @@ vi.mock('./api', () => ({
   default: { get: vi.fn() },
 }));
 
-const TOKEN = 'tok-xyz';
-const AUTH = { headers: { Authorization: 'Bearer tok-xyz' } };
+const TOKEN = 'tok-123456789';
+const AUTH = { headers: { Authorization: 'Bearer '+TOKEN } };
 
 describe('teacherService.getTeachers', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('GET /teacher avec entête Authorization et signal', async () => {
-    const teachers = [{ id: 1, firstName: 'Alice', lastName: 'Doe' }];
+  it('GET /teacher with the Authorization header and signal', async () => {
+    const teachers = [{ id: 3, firstName: 'Charlie', lastName: 'Zterone' }];
     vi.mocked(api.get).mockResolvedValue({ data: teachers });
     const signal = new AbortController().signal;
 
@@ -23,7 +23,7 @@ describe('teacherService.getTeachers', () => {
     expect(result).toEqual(teachers);
   });
 
-  it('fonctionne sans signal d\'abort', async () => {
+  it('works without an abort signal', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] });
 
     await teacherService.getTeachers(TOKEN);

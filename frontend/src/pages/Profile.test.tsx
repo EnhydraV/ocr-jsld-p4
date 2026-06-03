@@ -31,45 +31,47 @@ vi.mock('../services/user.service', () => ({
   },
 }));
 
+const TOKEN = 'tok-123456789';
+
 const NORMAL_USER = {
-  id: 1, email: 'u@x.c', firstName: 'Alice', lastName: 'Smith',
-  admin: false, token: 't', createdAt: '2025-01-15T10:00:00.000Z',
+  id: 1, email: 'victor@yoga.com', firstName: 'Victor', lastName: 'Pille',
+  admin: false, token: TOKEN, createdAt: '2026-01-15T10:00:00.000Z',
 };
 
 const ADMIN_USER = {
-  ...NORMAL_USER, id: 2, admin: true,
+  ...NORMAL_USER, id: 2, email: 'juliette@yoga.com', firstName: 'Juliette', lastName: 'Michel', admin: true,
 };
 
 function renderProfile() {
   return render(<MemoryRouter><Profile /></MemoryRouter>);
 }
 
-describe('Profile (intégration)', () => {
+describe('Profile (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(authService.getToken).mockReturnValue('t');
+    vi.mocked(authService.getToken).mockReturnValue(TOKEN);
     vi.mocked(authService.getCurrentUser).mockReturnValue(NORMAL_USER);
   });
 
-  it('affiche "Loading profile..." pendant le chargement', () => {
+  it('displays "Loading profile..." while loading', () => {
     vi.mocked(userService.getUser).mockReturnValue(new Promise(() => {}));
     renderProfile();
     expect(screen.getByText(/loading profile/i)).toBeInTheDocument();
   });
 
-  it('affiche les infos utilisateur une fois chargées', async () => {
+  it('displays the user info once loaded', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
 
     renderProfile();
 
     expect(await screen.findByRole('heading', { name: /my profile/i })).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Smith')).toBeInTheDocument();
-    expect(screen.getByText('u@x.c')).toBeInTheDocument();
+    expect(screen.getByText(NORMAL_USER.firstName)).toBeInTheDocument();
+    expect(screen.getByText(NORMAL_USER.lastName)).toBeInTheDocument();
+    expect(screen.getByText(NORMAL_USER.email)).toBeInTheDocument();
     expect(screen.getByText('User')).toBeInTheDocument();
   });
 
-  it('affiche "Administrator" pour un admin', async () => {
+  it('displays "Administrator" for an admin', async () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
     vi.mocked(userService.getUser).mockResolvedValue(ADMIN_USER);
 
@@ -78,7 +80,7 @@ describe('Profile (intégration)', () => {
     expect(await screen.findByText('Administrator')).toBeInTheDocument();
   });
 
-  it('affiche un message d\'erreur si le chargement échoue', async () => {
+  it('displays an error message if loading fails', async () => {
     const err = new AxiosError('fail');
     err.response = {
       data: { message: 'Not found' },
@@ -91,7 +93,7 @@ describe('Profile (intégration)', () => {
     expect(await screen.findByText('Not found')).toBeInTheDocument();
   });
 
-  it('appelle deleteUser, logout et redirige vers /login après confirmation', async () => {
+  it('calls deleteUser, logout and redirects to /login after confirmation', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     vi.mocked(userService.deleteUser).mockResolvedValue(undefined);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -101,12 +103,12 @@ describe('Profile (intégration)', () => {
     await screen.findByRole('heading', { name: /my profile/i });
     await user.click(screen.getByRole('button', { name: /delete account/i }));
 
-    await waitFor(() => expect(userService.deleteUser).toHaveBeenCalledWith('t', 1));
+    await waitFor(() => expect(userService.deleteUser).toHaveBeenCalledWith(TOKEN, NORMAL_USER.id));
     expect(authService.logout).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
-  it('ne fait rien si l\'utilisateur annule la confirmation', async () => {
+  it('does nothing if the user cancels the confirmation', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     const user = userEvent.setup();
@@ -119,7 +121,7 @@ describe('Profile (intégration)', () => {
     expect(authService.logout).not.toHaveBeenCalled();
   });
 
-  it('affiche le message d\'erreur si la suppression échoue', async () => {
+  it('displays the error message if deletion fails', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     const err = new AxiosError('fail');
     err.response = {
@@ -138,7 +140,7 @@ describe('Profile (intégration)', () => {
     expect(authService.logout).not.toHaveBeenCalled();
   });
 
-  it('le bouton "Back to Sessions" navigue vers /sessions', async () => {
+  it('the "Back to Sessions" button navigates to /sessions', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     const user = userEvent.setup();
 
@@ -149,7 +151,7 @@ describe('Profile (intégration)', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/sessions');
   });
 
-  it('clique sur "Promote to Admin", appelle l\'API et met à jour le user local', async () => {
+  it('clicks "Promote to Admin", calls the API and updates the local user', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     vi.mocked(userService.promoteAdmin).mockResolvedValue({ ...NORMAL_USER, admin: true });
     const user = userEvent.setup();
@@ -158,11 +160,11 @@ describe('Profile (intégration)', () => {
     await screen.findByRole('heading', { name: /my profile/i });
     await user.click(screen.getByRole('button', { name: /promote to admin/i }));
 
-    await waitFor(() => expect(userService.promoteAdmin).toHaveBeenCalledWith('t'));
+    await waitFor(() => expect(userService.promoteAdmin).toHaveBeenCalledWith(TOKEN));
     expect(authService.updateCurrentUser).toHaveBeenCalledWith({ admin: true });
   });
 
-  it('affiche le message d\'erreur si la promotion échoue', async () => {
+  it('displays the error message if the promotion fails', async () => {
     vi.mocked(userService.getUser).mockResolvedValue(NORMAL_USER);
     const err = new AxiosError('fail');
     err.response = {

@@ -36,14 +36,34 @@ vi.mock('../services/teacher.service', () => ({
   },
 }));
 
+const TOKEN = 'tok-123456789';
+
 const ADMIN_USER = {
-  id: 1, email: 'admin@x.c', firstName: 'Admin', lastName: 'A', admin: true, token: 't',
+  id: 2, email: 'juliette@yoga.com', firstName: 'Juliette', lastName: 'Michel',
+  admin: true, token: TOKEN, createdAt: '2026-01-15T10:00:00.000Z',
 };
 
 const TEACHERS = [
-  { id: 1, firstName: 'Alice', lastName: 'Doe' },
-  { id: 2, firstName: 'Bob', lastName: 'Smith' },
+  { id: 3, firstName: 'Charlie', lastName: 'Zterone' },
+  { id: 4, firstName: 'Oscar', lastName: 'Isé' },
 ];
+
+// Données saisies dans le formulaire en mode création (réutilisées pour vérifier le payload)
+const CREATE_INPUT = {
+  name: 'Yoga du soir',
+  date: '2026-07-15',
+  description: 'Une séance dynamique',
+  teacherId: TEACHERS[0].id,
+};
+
+const EDIT_SESSION = {
+  id: 42,
+  name: 'Yoga doux',
+  date: '2026-08-20T10:00:00.000Z',
+  description: 'Pratique douce',
+  teacher: TEACHERS[1],
+  users: [] as number[],
+};
 
 function getInputs() {
   const name = document.querySelector('input[name="name"]') as HTMLInputElement;
@@ -74,50 +94,45 @@ function renderEdit(id: string) {
   );
 }
 
-describe('SessionForm (intégration)', () => {
+describe('SessionForm (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(authService.getCurrentUser).mockReturnValue(ADMIN_USER);
-    vi.mocked(authService.getToken).mockReturnValue('t');
+    vi.mocked(authService.getToken).mockReturnValue(TOKEN);
     vi.mocked(teacherService.getTeachers).mockResolvedValue(TEACHERS);
   });
 
-  it('affiche le titre "Create New Session" en mode création', async () => {
+  it('displays the "Create New Session" title in creation mode', async () => {
     renderCreate();
     expect(await screen.findByRole('heading', { name: /create new session/i })).toBeInTheDocument();
   });
 
-  it('charge la liste des teachers et la propose dans le select', async () => {
+  it('loads the list of teachers and offers it in the select', async () => {
     renderCreate();
     await waitFor(() => expect(teacherService.getTeachers).toHaveBeenCalled());
-    expect(await screen.findByRole('option', { name: 'Alice Doe' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Bob Smith' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: `${TEACHERS[0].firstName} ${TEACHERS[0].lastName}` })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: `${TEACHERS[1].firstName} ${TEACHERS[1].lastName}` })).toBeInTheDocument();
   });
 
-  it('soumet le formulaire, crée la session et redirige vers /sessions', async () => {
+  it('submits the form, creates the session and redirects to /sessions', async () => {
     vi.mocked(sessionService.createSession).mockResolvedValue(undefined);
     const user = userEvent.setup();
 
     renderCreate();
-    await screen.findByRole('option', { name: 'Alice Doe' });
+    await screen.findByRole('option', { name: `${TEACHERS[0].firstName} ${TEACHERS[0].lastName}` });
 
     const { name, date, teacherSelect, description } = getInputs();
-    await user.type(name, 'Vinyasa');
-    await user.type(date, '2026-07-15');
-    await user.selectOptions(teacherSelect, '1');
-    await user.type(description, 'Une session dynamique');
+    await user.type(name, CREATE_INPUT.name);
+    await user.type(date, CREATE_INPUT.date);
+    await user.selectOptions(teacherSelect, String(CREATE_INPUT.teacherId));
+    await user.type(description, CREATE_INPUT.description);
     await user.click(screen.getByRole('button', { name: /create session/i }));
 
-    await waitFor(() => expect(sessionService.createSession).toHaveBeenCalledWith('t', {
-      name: 'Vinyasa',
-      date: '2026-07-15',
-      description: 'Une session dynamique',
-      teacherId: 1,
-    }));
+    await waitFor(() => expect(sessionService.createSession).toHaveBeenCalledWith(TOKEN, CREATE_INPUT));
     expect(mockNavigate).toHaveBeenCalledWith('/sessions');
   });
 
-  it('affiche le message d\'erreur backend si la création échoue', async () => {
+  it('displays the backend error message if the creation fails', async () => {
     const err = new AxiosError('fail');
     err.response = {
       data: { message: 'Invalid date' },
@@ -127,38 +142,31 @@ describe('SessionForm (intégration)', () => {
     const user = userEvent.setup();
 
     renderCreate();
-    await screen.findByRole('option', { name: 'Alice Doe' });
+    await screen.findByRole('option', { name: `${TEACHERS[0].firstName} ${TEACHERS[0].lastName}` });
 
     const { name, date, teacherSelect, description } = getInputs();
-    await user.type(name, 'Vinyasa');
-    await user.type(date, '2026-07-15');
-    await user.selectOptions(teacherSelect, '1');
-    await user.type(description, 'desc');
+    await user.type(name, CREATE_INPUT.name);
+    await user.type(date, CREATE_INPUT.date);
+    await user.selectOptions(teacherSelect, String(CREATE_INPUT.teacherId));
+    await user.type(description, CREATE_INPUT.description);
     await user.click(screen.getByRole('button', { name: /create session/i }));
 
     expect(await screen.findByText('Invalid date')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('en mode édition, pré-remplit le formulaire avec les données de la session', async () => {
-    vi.mocked(sessionService.getSession).mockResolvedValue({
-      id: 42,
-      name: 'Hatha',
-      date: '2026-08-20T10:00:00.000Z',
-      description: 'Doux',
-      teacher: { id: 2, firstName: 'Bob', lastName: 'Smith' },
-      users: [],
-    });
+  it('in edit mode, pre-fills the form with the session data', async () => {
+    vi.mocked(sessionService.getSession).mockResolvedValue(EDIT_SESSION);
 
-    renderEdit('42');
+    renderEdit(String(EDIT_SESSION.id));
 
     expect(await screen.findByRole('heading', { name: /edit session/i })).toBeInTheDocument();
     await waitFor(() => {
       const { name, date, description } = getInputs();
-      expect(name.value).toBe('Hatha');
-      expect(date.value).toBe('2026-08-20');
-      expect(description.value).toBe('Doux');
+      expect(name.value).toBe(EDIT_SESSION.name);
+      expect(date.value).toBe('2026-08-20'); // toInputDate convertit la date ISO
+      expect(description.value).toBe(EDIT_SESSION.description);
     });
-    expect(sessionService.getSession).toHaveBeenCalledWith('t', '42', expect.anything());
+    expect(sessionService.getSession).toHaveBeenCalledWith(TOKEN, String(EDIT_SESSION.id), expect.anything());
   });
 });

@@ -15,19 +15,19 @@ describe('useAuth', () => {
     vi.clearAllMocks();
   });
 
-  it('retourne user et token issus du authService', () => {
-    const fakeUser = {
-      id: 1, email: 'a@b.c', firstName: 'A', lastName: 'B', admin: false, token: 'tok-1',
+  it('returns user and token from the authService', () => {
+    const user = {
+      id: 1, email: 'victor@yoga.com', firstName: 'Victor', lastName: 'Pille', admin: false, token: 'tok-123456789',
     };
-    vi.mocked(authService.getCurrentUser).mockReturnValue(fakeUser);
-    vi.mocked(authService.getToken).mockReturnValue('tok-1');
+    vi.mocked(authService.getCurrentUser).mockReturnValue(user);
+    vi.mocked(authService.getToken).mockReturnValue(user.token);
 
     const { result } = renderHook(() => useAuth());
-    expect(result.current.user).toEqual(fakeUser);
-    expect(result.current.token).toBe('tok-1');
+    expect(result.current.user).toEqual(user);
+    expect(result.current.token).toBe(user.token);
   });
 
-  it('retourne null/null quand aucun utilisateur n\'est connecté', () => {
+  it('returns null/null when no user is logged in', () => {
     vi.mocked(authService.getCurrentUser).mockReturnValue(null);
     vi.mocked(authService.getToken).mockReturnValue(null);
 

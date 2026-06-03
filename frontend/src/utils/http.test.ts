@@ -9,9 +9,9 @@ describe('authHeaders', () => {
     });
   });
 
-  it('works with a null token', () => {
+  it('omits the Authorization header when the token is null', () => {
     expect(authHeaders(null)).toEqual({
-      headers: { Authorization: 'Bearer null' },
+      headers: {},
     });
   });
 });
