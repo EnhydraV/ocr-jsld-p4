@@ -1,0 +1,18 @@
+[
+  {
+    "id": 10,
+    "name": "Yoga du matin",
+    "date": "2026-06-15T09:00:00.000Z",
+    "description": "Un flow dynamique pour bien démarrer la journée.",
+    "teacher": { "id": 3, "firstName": "Charlie", "lastName": "Zterone" },
+    "users": [2, 3]
+  },
+  {
+    "id": 11,
+    "name": "Détente du soir",
+    "date": "2026-06-20T18:30:00.000Z",
+    "description": "Postures lentes et réparatrices.",
+    "teacher": { "id": 4, "firstName": "Oscar", "lastName": "Isé" },
+    "users": []
+  }
+]
