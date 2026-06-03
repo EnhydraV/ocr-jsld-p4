@@ -1,9 +1,9 @@
-import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller';
-import { SessionController } from '../controllers/session.controller';
-import { TeacherController } from '../controllers/teacher.controller';
-import { UserController } from '../controllers/user.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import {Router} from 'express';
+import {AuthController} from '../controllers/auth.controller';
+import {SessionController} from '../controllers/session.controller';
+import {TeacherController} from '../controllers/teacher.controller';
+import {UserController} from '../controllers/user.controller';
+import {authMiddleware} from '../middleware/auth.middleware';
 
 const router = Router();
 
