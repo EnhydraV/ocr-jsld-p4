@@ -5,7 +5,11 @@
       "Bash(npm install *)",
       "Bash(npm test *)",
       "Bash(Get-ChildItem -Path \"D:\\\\Works\\\\ocr\\\\p04-projet\" -Recurse -Directory)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "mcp__ide__getDiagnostics",
+      "Read(//mnt/d/Works/ocr/p04-projet/backend/src/**)",
+      "Bash(dir \"D:\\\\Works\\\\ocr\\\\p04-projet\\\\backend\\\\src\\\\middleware\\\\\")",
+      "Bash(npx vitest *)"
     ]
   }
 }
