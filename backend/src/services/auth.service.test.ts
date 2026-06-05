@@ -39,7 +39,8 @@ describe('AuthService', async () => {
     };
 
 
-    // Valider les données utilisées dans les tests pour provoquer une erreur si le schéma est durci
+    // Valider les données utilisées dans les tests pour provoquer une erreur avant le test
+    // si le schéma est durci
     const VALID_LOGIN_BODY = LoginSchema.parse({
         email: USER.email,
         password: USER.password,
@@ -52,45 +53,51 @@ describe('AuthService', async () => {
         lastName: USER.lastName,
     });
 
+    describe('login', () => {
+        it('should return invalid credentials when email not exists', async () => {
+            prisma.user.findUnique.mockResolvedValue(null);
+            await expect(authService.login({
+                email: 'unknown@yoga.com',
+                'password': PASSWORD
+            })).rejects.toMatchObject({statusCode: 401, message: 'Invalid credentials'});
+        });
+        it('should return invalid credentials when password is wrong', async () => {
+            prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
+            await expect(authService.login({
+                email: USER.email,
+                'password': WRONG_PASSWORD
+            })).rejects.toMatchObject({statusCode: 401, message: 'Invalid credentials'});
+        });
+        it('should return user response when login is ok', async () => {
+            prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
+            mockedGenerateToken.mockReturnValue(TOKEN);
 
-    it('should return invalid credentials when email not exists', async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-        await expect(authService.login({
-            email: 'unknown@yoga.com',
-            'password': PASSWORD
-        })).rejects.toMatchObject({statusCode: 401, message: 'Invalid credentials'});
-    });
-    it('should return invalid credentials when password is wrong', async () => {
-        prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
-        await expect(authService.login({
-            email: USER.email,
-            'password': WRONG_PASSWORD
-        })).rejects.toMatchObject({statusCode: 401, message: 'Invalid credentials'});
-    });
-    it('should return user response when login is ok', async () => {
-        prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
-        mockedGenerateToken.mockReturnValue(TOKEN);
-
-        const res = await authService.login(VALID_LOGIN_BODY);
-        expect(res).toMatchObject(EXPECTED_AUTH_RESPONSE);
-        expect(mockedGenerateToken).toHaveBeenCalledWith(USER.id)
-        expect(res).not.toHaveProperty('password');
-    });
-    it('should return an error when the email already exists', async () => {
-        prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
-
-        await expect(authService.register(VALID_REGISTER_BODY)).rejects.toMatchObject({
-            statusCode: 400,
-            message: 'Email already exists'
+            const res = await authService.login(VALID_LOGIN_BODY);
+            expect(res).toMatchObject(EXPECTED_AUTH_RESPONSE);
+            expect(mockedGenerateToken).toHaveBeenCalledWith(USER.id)
+            expect(res).not.toHaveProperty('password');
         });
     });
-    it('should return user response when register is ok', async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-        prisma.user.create.mockResolvedValue({...USER, password: HASHED_PASSWORD})
-        mockedGenerateToken.mockReturnValue(TOKEN);
-        const res = await authService.register(VALID_REGISTER_BODY);
-        expect(mockedGenerateToken).toHaveBeenCalledWith(USER.id)
-        expect(res).toMatchObject(EXPECTED_AUTH_RESPONSE);
-        expect(res).not.toHaveProperty('password');
-    });
+
+    describe('register', () => {
+        it('should return an error when the email already exists', async () => {
+            prisma.user.findUnique.mockResolvedValue({...USER, password: HASHED_PASSWORD});
+
+            await expect(authService.register(VALID_REGISTER_BODY)).rejects.toMatchObject({
+                statusCode: 400,
+                message: 'Email already exists'
+            });
+        });
+        it('should return user response when register is ok', async () => {
+            prisma.user.findUnique.mockResolvedValue(null);
+            prisma.user.create.mockResolvedValue({...USER, password: HASHED_PASSWORD})
+            mockedGenerateToken.mockReturnValue(TOKEN);
+            const res = await authService.register(VALID_REGISTER_BODY);
+            expect(mockedGenerateToken).toHaveBeenCalledWith(USER.id)
+            expect(res).toMatchObject(EXPECTED_AUTH_RESPONSE);
+            expect(res).not.toHaveProperty('password');
+        });
+    })
+
+
 })

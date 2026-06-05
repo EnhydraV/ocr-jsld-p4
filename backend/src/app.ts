@@ -1,7 +1,8 @@
-import express, {NextFunction} from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
+import {errorHandler} from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -23,16 +24,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Error Handling
-app.use((err: Error, req: express.Request, res: express.Response, next: NextFunction) => {
-    // Erreur inattendue
-    console.error(err);
-    res.status(500).json({
-        error: {
-            code: 'INTERNAL_ERROR',
-            message: 'Une erreur interne est survenue',
-        },
-    });
-});
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
