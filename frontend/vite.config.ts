@@ -15,7 +15,7 @@ export default defineConfig({
       ? [
           istanbul({
             include: 'src/*',
-            exclude: ['node_modules', 'src/test', 'src/**/*.test.{ts,tsx}'],
+            exclude: ['node_modules', 'tests'],
             extension: ['.ts', '.tsx'],
             requireEnv: false,
           }),
@@ -30,7 +30,7 @@ export default defineConfig({
       jsdom: { url: 'http://localhost:3000/' },
     },
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./tests/setup.ts'],
     pool: 'threads',
     coverage: {
       provider: 'v8',
@@ -38,8 +38,6 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
-        'src/**/*.test.{ts,tsx}',
-        'src/test/**',
         'src/main.tsx',
         'src/types/**',
         'src/**/*.d.ts',
