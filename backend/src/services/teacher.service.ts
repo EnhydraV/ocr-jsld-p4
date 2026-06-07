@@ -1,23 +1,17 @@
 import { AppError } from '../errors/AppError';
+import { TeacherResponse } from '../dto/teacher.dto';
+import { toTeacherResponse } from '../utils/teacher.util';
 import prisma from '../utils/prisma';
 
-const toTeacherResponse = (teacher: any) => ({
-    id: teacher.id,
-    firstName: teacher.firstName,
-    lastName: teacher.lastName,
-    createdAt: teacher.createdAt,
-    updatedAt: teacher.updatedAt,
-});
-
 export class TeacherService {
-    async getAll() {
+    async getAll(): Promise<TeacherResponse[]> {
         const teachers = await prisma.teacher.findMany({
             orderBy: { createdAt: 'desc' },
         });
         return teachers.map(toTeacherResponse);
     }
 
-    async getById(id: number) {
+    async getById(id: number): Promise<TeacherResponse> {
         const teacher = await prisma.teacher.findUnique({ where: { id } });
         if (!teacher) {
             throw new AppError(404, 'Teacher not found');
