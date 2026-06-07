@@ -1,18 +1,14 @@
 import { AppError } from '../errors/AppError';
+import { UserResponse } from '../dto/user.dto';
+import { toUserResponse } from '../utils/user.util';
 import prisma from '../utils/prisma';
 
-const toUserResponse = (user: any) => ({
-    id: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    admin: user.admin,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-});
-
 export class UserService {
-    async getById(id: number) {
+    async getById(id: number, requesterId: number): Promise<UserResponse> {
+        if (requesterId !== id) {
+            throw new AppError(403, 'You can only read your own account');
+        }
+
         const user = await prisma.user.findUnique({ where: { id } });
         if (!user) {
             throw new AppError(404, 'User not found');
@@ -33,7 +29,7 @@ export class UserService {
         await prisma.user.delete({ where: { id } });
     }
 
-    async promoteSelfToAdmin(userId: number) {
+    async promoteSelfToAdmin(userId: number): Promise<UserResponse> {
         const isDev = (process.env.NODE_ENV || 'development') === 'development';
         if (!isDev) {
             throw new AppError(403, 'Admin self-promotion is only available in development');
