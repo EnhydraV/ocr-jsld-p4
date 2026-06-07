@@ -29,7 +29,8 @@ const TEACHER_2 = {
     createdAt: new Date('2026-06-06'),
     updatedAt: new Date('2026-06-07'),
 }
-const TOKEN = 'tok-1234567890'
+const TOKEN = 'tok-1234567890';
+const AUTH_HEADER = ['Authorization', 'Bearer ' + TOKEN] as const;
 
 const getAllSpy = vi.spyOn(TeacherService.prototype, 'getAll');
 const getByIdSpy = vi.spyOn(TeacherService.prototype, 'getById');
@@ -52,7 +53,7 @@ describe('TeacherController', () => {
         it('should return 200 with the teacher list', async () => {
             const teacherList=[TEACHER, TEACHER_2].map(toTeacherResponse);
             getAllSpy.mockResolvedValue(teacherList);
-            const response = await supertest(app).get('/api/teacher').set('Authorization', 'Bearer ' + TOKEN);
+            const response = await supertest(app).get('/api/teacher').set(...AUTH_HEADER);
             expect(response.status).toBe(200);
             expect(response.body).toStrictEqual(serialized(teacherList));
             expect(getAllSpy).toHaveBeenCalled();
@@ -61,7 +62,7 @@ describe('TeacherController', () => {
         it('should return the rejection details of unexpected error', async () => {
             const error = new Error('Erreur chien tête en bas');
             getAllSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/teacher').set({authorization: 'Bearer ' + TOKEN});
+            const response = await supertest(app).get('/api/teacher').set(...AUTH_HEADER);
             expect(response.status).toBe(500);
             expect(response.body).toStrictEqual({
                 error: {code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue'},
@@ -82,14 +83,14 @@ describe('TeacherController', () => {
         });
 
         it('should return 400 when the id is not a number', async () => {
-            const response = await supertest(app).get('/api/teacher/notanumber').set('Authorization', 'Bearer ' + TOKEN);
+            const response = await supertest(app).get('/api/teacher/notanumber').set(...AUTH_HEADER);
             expect(response.status).toBe(400);
             expect(response.body).toMatchObject({message: 'Invalid teacher ID'});
             expect(getByIdSpy).not.toHaveBeenCalled();
         });
         it('should return 200 with the requested teacher', async () => {
             getByIdSpy.mockResolvedValue(TEACHER);
-            const response = await supertest(app).get('/api/teacher/' + TEACHER.id).set('Authorization', 'Bearer ' + TOKEN);
+            const response = await supertest(app).get('/api/teacher/' + TEACHER.id).set(...AUTH_HEADER);
             expect(response.status).toBe(200);
             expect(response.body).toStrictEqual(serialized(TEACHER));
             expect(getByIdSpy).toHaveBeenCalledWith(TEACHER.id);
@@ -100,7 +101,7 @@ describe('TeacherController', () => {
             const error = new AppError(400, 'Invalid Teacher ID');
             getByIdSpy.mockRejectedValue(error);
             const response = await supertest(app).get('/api/teacher/' + TEACHER.id)
-                .set({authorization: 'Bearer ' + TOKEN});
+                .set(...AUTH_HEADER);
             expect(response.status).toBe(error.statusCode);
             expect(response.body).toMatchObject({message: error.message});
         });

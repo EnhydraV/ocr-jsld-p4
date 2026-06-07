@@ -1,8 +1,14 @@
-import { CreateSessionSchema, UpdateSessionSchema } from '../dto/session.dto';
+import { Prisma } from '@prisma/client';
+import { CreateSessionSchema, UpdateSessionSchema, type SessionResponse } from '../dto/session.dto';
 import { AppError } from '../errors/AppError';
 import prisma from '../utils/prisma';
 
-const toSessionResponse = (session: any) => ({
+// Session Prisma avec ses relations chargées (miroir de l'include des requêtes)
+export type SessionWithRelations = Prisma.SessionGetPayload<{
+    include: { teacher: true; participants: { include: { user: true } } };
+}>;
+
+const toSessionResponse = (session: SessionWithRelations): SessionResponse => ({
     id: session.id,
     name: session.name,
     date: session.date,
@@ -12,7 +18,7 @@ const toSessionResponse = (session: any) => ({
         firstName: session.teacher.firstName,
         lastName: session.teacher.lastName,
     },
-    users: session.participants.map((p: any) => p.user.id),
+    users: session.participants.map((p) => p.user.id),
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
 });
@@ -44,7 +50,7 @@ export class SessionService {
         return toSessionResponse(session);
     }
 
-    async create(body: unknown, requesterId: number) {
+    async create(body: unknown, requesterId: number): Promise<SessionResponse> {
         const result = CreateSessionSchema.safeParse(body);
         if (!result.success) {
             throw new AppError(400, result.error.message);
