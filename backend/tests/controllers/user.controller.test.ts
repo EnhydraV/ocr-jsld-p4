@@ -4,7 +4,6 @@ import {serialized} from '../utils/serialize';
 import {verifyToken} from '../../src/utils/jwt.util';
 import supertest from "supertest";
 import {UserService} from "../../src/services/user.service";
-import {AppError} from "../../src/errors/AppError";
 
 vi.mock('../../src/utils/prisma', async () => await import('../utils/__mocks__/prisma'));
 vi.mock('../../src/utils/jwt.util', () => ({
@@ -14,8 +13,9 @@ vi.mock('../../src/utils/jwt.util', () => ({
 const getByIdSpy = vi.spyOn(UserService.prototype, 'getById');
 const deleteSpy = vi.spyOn(UserService.prototype, 'delete');
 const promoteSpy = vi.spyOn(UserService.prototype, 'promoteSelfToAdmin');
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-});
+
+// Le mapping des erreurs (AppError → statut, erreur inattendue → 500) est testé
+// une seule fois dans tests/middleware/errorHandler.test.ts.
 
 const app = createTestApp();
 const USER = {
@@ -58,26 +58,6 @@ describe('UserController', () => {
             expect(response.body).toStrictEqual(serialized(USER));
             expect(getByIdSpy).toHaveBeenCalledWith(USER.id,REQUESTER_ID)
         });
-        it('should return the rejection details on error', async () => {
-            const error = new AppError(404, 'User not found');
-            getByIdSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/user/' + USER.id).set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
-        });
-
-        it('should return the rejection details of unexpected error', async () => {
-            const error = new Error('Erreur chien tête en bas');
-            getByIdSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/user/' + USER.id).set(...AUTH_HEADER);
-            expect(response.status).toBe(500);
-            expect(response.body).toStrictEqual({
-                error: {code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue'},
-            });
-            expect(response.body.error.message).not.toBe(error.message);
-            expect(getByIdSpy).toHaveBeenCalled();
-            expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-        });
     });
 
     describe('POST /api/user/promote-admin', () => {
@@ -95,14 +75,6 @@ describe('UserController', () => {
             expect(response.status).toBe(200);
             expect(response.body).toStrictEqual(serialized(promotedUser));
             expect(promoteSpy).toHaveBeenCalledWith(REQUESTER_ID);
-        });
-
-        it('should map an error if promotion fails', async () => {
-            const error = new AppError(404, 'User not found');
-            promoteSpy.mockRejectedValue(error);
-            const response = await supertest(app).post('/api/user/promote-admin').set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
         });
     });
 
@@ -126,13 +98,6 @@ describe('UserController', () => {
             expect(response.status).toBe(200);
             expect(response.body).toMatchObject({message: 'User deleted successfully'});
             expect(deleteSpy).toHaveBeenCalledWith(USER.id, REQUESTER_ID);
-        });
-        it('should return the rejection details on error', async () => {
-            const error = new AppError(403, 'You can only delete your own account');
-            deleteSpy.mockRejectedValue(error);
-            const response = await supertest(app).delete('/api/user/' + USER.id).set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
         });
     });
 });

@@ -39,9 +39,10 @@ const updateSpy = vi.spyOn(SessionService.prototype, 'update');
 const deleteSpy = vi.spyOn(SessionService.prototype, 'delete');
 const participateSpy = vi.spyOn(SessionService.prototype, 'participate');
 const unparticipateSpy = vi.spyOn(SessionService.prototype, 'unparticipate');
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-});
 
+// Le mapping générique des erreurs est testé dans tests/middleware/errorHandler.test.ts.
+// On garde ici UN test de bout en bout (getById) qui prouve que asyncHandler forwarde
+// bien un rejet async du service vers le errorHandler.
 
 describe('SessionController', () => {
     beforeEach(() => {
@@ -81,18 +82,6 @@ describe('SessionController', () => {
             expect(getByIdSpy).toHaveBeenCalledWith(SESSION.id);
         });
 
-        it('should return 500 on an unexpected error', async () => {
-            const error = new Error('Erreur chien tête en haut');
-            getByIdSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/session/' + SESSION.id).set(...AUTH_HEADER);
-            expect(response.status).toBe(500);
-            expect(response.body).toStrictEqual({
-                error: {code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue'},
-            });
-            expect(response.body.error.message).not.toBe(error.message);
-            expect(getByIdSpy).toHaveBeenCalled();
-            expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-        });
     });
 
     describe('POST /api/session', () => {
@@ -142,13 +131,6 @@ describe('SessionController', () => {
             expect(response.body).toMatchObject({message: 'Session deleted successfully'});
             expect(deleteSpy).toHaveBeenCalledWith(SESSION.id, USER_ID);
         });
-        it('should map an AppError (403 not admin) to its status code', async () => {
-            const error = new AppError(403, 'Admin access required');
-            deleteSpy.mockRejectedValue(error);
-            const response = await supertest(app).delete('/api/session/' + SESSION.id).set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
-        });
     });
 
     describe('POST /api/session/:id/participate/:userId', () => {
@@ -192,13 +174,6 @@ describe('SessionController', () => {
             expect(response.status).toBe(200);
             expect(response.body).toMatchObject({message: 'Successfully left the session'});
             expect(unparticipateSpy).toHaveBeenCalledWith(SESSION.id, PARTICIPANT_ID);
-        });
-        it('should map an AppError (404 participation not found) to its status code', async () => {
-            const error = new AppError(404, 'Participation not found');
-            unparticipateSpy.mockRejectedValue(error);
-            const response = await supertest(app).delete('/api/session/' + SESSION.id + '/participate/' + PARTICIPANT_ID).set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
         });
     });
 });

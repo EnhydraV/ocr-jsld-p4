@@ -37,6 +37,7 @@ describe('TeacherService', () => {
             expect(response).toStrictEqual([TEACHER_2, TEACHER].map(toTeacherResponse));
             expect(prisma.teacher.findMany).toHaveBeenCalledWith({orderBy:{ createdAt: 'desc' },})
         });
+
     });
 
     describe('getById', () => {

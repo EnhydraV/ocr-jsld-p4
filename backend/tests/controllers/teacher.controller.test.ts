@@ -5,7 +5,6 @@ import {verifyToken} from '../../src/utils/jwt.util';
 import supertest from "supertest";
 import {toTeacherResponse} from "../../src/utils/teacher.util";
 import {serialized} from "../utils/serialize";
-import {AppError} from "../../src/errors/AppError";
 
 vi.mock('../../src/utils/prisma', async () => await import('../utils/__mocks__/prisma'));
 vi.mock('../../src/utils/jwt.util', () => ({
@@ -34,8 +33,9 @@ const AUTH_HEADER = ['Authorization', 'Bearer ' + TOKEN] as const;
 
 const getAllSpy = vi.spyOn(TeacherService.prototype, 'getAll');
 const getByIdSpy = vi.spyOn(TeacherService.prototype, 'getById');
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-});
+
+// Le mapping des erreurs (AppError → statut, erreur inattendue → 500) est testé
+// une seule fois dans tests/middleware/errorHandler.test.ts.
 
 describe('TeacherController', () => {
     beforeEach(() => {
@@ -58,20 +58,6 @@ describe('TeacherController', () => {
             expect(response.body).toStrictEqual(serialized(teacherList));
             expect(getAllSpy).toHaveBeenCalled();
         });
-
-        it('should return the rejection details of unexpected error', async () => {
-            const error = new Error('Erreur chien tête en bas');
-            getAllSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/teacher').set(...AUTH_HEADER);
-            expect(response.status).toBe(500);
-            expect(response.body).toStrictEqual({
-                error: {code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue'},
-            });
-            expect(response.body.error.message).not.toBe(error.message);
-            expect(getAllSpy).toHaveBeenCalled();
-            expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-        });
-
     });
 
     describe('GET /api/teacher/:id', () => {
@@ -95,16 +81,5 @@ describe('TeacherController', () => {
             expect(response.body).toStrictEqual(serialized(TEACHER));
             expect(getByIdSpy).toHaveBeenCalledWith(TEACHER.id);
         });
-
-
-        it('should map an error to its status code', async () => {
-            const error = new AppError(400, 'Invalid Teacher ID');
-            getByIdSpy.mockRejectedValue(error);
-            const response = await supertest(app).get('/api/teacher/' + TEACHER.id)
-                .set(...AUTH_HEADER);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toMatchObject({message: error.message});
-        });
-
     });
 });

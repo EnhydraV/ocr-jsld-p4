@@ -127,6 +127,8 @@ describe('SessionService', () => {
             });
             expect(response).toStrictEqual(toSessionResponse(prismaSession));
         });
+
+
     });
 
     describe('update', () => {
@@ -269,7 +271,16 @@ describe('SessionService', () => {
         it('should delete the participation otherwise', async () => {
             prisma.sessionParticipation.findUnique.mockResolvedValue({sessionId: SESSION.id, userId: PARTICIPANT_ID});
             await sessionService.unparticipate(SESSION.id, PARTICIPANT_ID);
-            expect(prisma.sessionParticipation.delete).toHaveBeenCalledWith({where: {sessionId_userId: {sessionId: SESSION.id,userId: PARTICIPANT_ID}}});
+            expect(prisma.sessionParticipation.delete).toHaveBeenCalledWith({
+                where: {
+                    sessionId_userId: {
+                        sessionId: SESSION.id,
+                        userId: PARTICIPANT_ID
+                    }
+                }
+            });
         });
+
+
     });
 });

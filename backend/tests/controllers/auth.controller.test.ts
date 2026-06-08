@@ -2,7 +2,6 @@ import {beforeEach, describe, it, vi, expect} from 'vitest';
 import {createTestApp} from '../utils/test-app';
 import {AuthService} from '../../src/services/auth.service';
 import supertest from "supertest";
-import {AppError} from "../../src/errors/AppError";
 import {LoginSchema, RegisterSchema} from "../../src/dto/auth.dto";
 
 vi.mock('../../src/utils/prisma', async () => await import('../utils/__mocks__/prisma'));
@@ -11,9 +10,6 @@ const app = createTestApp();
 
 const loginSpy = vi.spyOn(AuthService.prototype, 'login');
 const registerSpy = vi.spyOn(AuthService.prototype, 'register');
-// Rend console.error silencieux pour tests erreur 500
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-});
 
 describe('AuthController', () => {
     beforeEach(() => {
@@ -41,6 +37,8 @@ describe('AuthController', () => {
         lastName: USER.lastName,
     });
 
+    // Le mapping des erreurs (AppError → statut, erreur inattendue → 500) est testé
+    // une seule fois dans tests/middleware/errorHandler.test.ts.
 
     // Routes publiques : pas de authMiddleware, donc pas de cas 401 "no token"
     describe('POST /api/auth/login', () => {
@@ -53,32 +51,6 @@ describe('AuthController', () => {
             expect(loginSpy).toHaveBeenCalledWith(body);
 
         });
-
-        it('should return error 401', async () => {
-            const error = new AppError(401, 'Invalid credentials');
-            loginSpy.mockRejectedValue(error);
-            const body = {email: USER.email, password: PASSWORD};
-            const response = await supertest(app).post("/api/auth/login").send(body);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toStrictEqual({message: error.message});
-            expect(loginSpy).toHaveBeenCalledWith(body);
-        });
-
-        it('should return 500 on an unexpected error', async () => {
-            // Erreur "inattendue" (pas un AppError) : doit passer par next(err)
-            // et tomber dans errorHandler avec une réponse générique.
-            const error = new Error('Erreur chien tête en bas');
-            loginSpy.mockRejectedValue(error);
-            const body = {email: USER.email, password: PASSWORD};
-            const response = await supertest(app).post("/api/auth/login").send(body);
-            expect(response.status).toBe(500);
-            expect(response.body).toStrictEqual({
-                error: {code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue'},
-            });
-            expect(response.body.error.message).not.toBe(error.message); // pas de fuite
-            expect(loginSpy).toHaveBeenCalledWith(body);
-            expect(consoleErrorSpy).toHaveBeenCalledWith(error);
-        });
     });
 
     describe('POST /api/auth/register', () => {
@@ -89,14 +61,6 @@ describe('AuthController', () => {
             expect(response.body).toStrictEqual(USER);
             expect(registerSpy).toHaveBeenCalledWith(VALID_REGISTER_BODY);
 
-        });
-        it('should return 400', async () => {
-            const error = new AppError(400, 'Email already exists');
-            registerSpy.mockRejectedValue(error);
-            const response = await supertest(app).post("/api/auth/register").send(VALID_REGISTER_BODY);
-            expect(response.status).toBe(error.statusCode);
-            expect(response.body).toStrictEqual({message: error.message});
-            expect(registerSpy).toHaveBeenCalledWith(VALID_REGISTER_BODY);
         });
     });
 });
