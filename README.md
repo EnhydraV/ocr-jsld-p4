@@ -7,24 +7,23 @@ A full-stack web application for managing yoga studio operations, including sess
 ### Backend
 - Node.js 22 LTS
 - Express.js 4.x
-- TypeScript 5.4+ (Strict Mode)
-- Prisma ORM
-- PostgreSQL 16
-- Zod (validation)
-- JWT (authentication)
-- bcrypt (password hashing)
+- TypeScript 5.9 (Strict Mode)
+- Prisma ORM 5 + PostgreSQL 16
+- Zod 4 (validation)
+- JWT (authentication) + bcrypt (password hashing)
+- Vitest 4 + Supertest + Testcontainers (tests)
 
 ### Frontend
 - React 19 (Hooks only)
-- TypeScript 5.9+ (Strict Mode)
-- Vite 7.x
+- TypeScript 6.x (Strict Mode)
+- Vite 8.x
 - TailwindCSS 4.x
-- React Router 6.x
+- React Router 7.x
 - Axios
+- Vitest 4 + Testing Library + Cypress (tests)
 
 ### Infrastructure
-- Docker + Docker Compose
-- PostgreSQL container
+- Docker + Docker Compose (PostgreSQL container)
 
 ## Features
 
@@ -33,59 +32,54 @@ A full-stack web application for managing yoga studio operations, including sess
 - User login with JWT tokens
 
 ### Sessions Management
-- List all yoga sessions
-- View session details
-- Create new sessions (admin only)
-- Update sessions (admin only)
-- Delete sessions (admin only)
-- Join/leave sessions (regular users)
+- List all sessions / view session details
+- Create, update, delete sessions (admin only)
+- Join / leave sessions (regular users)
 
 ### Teachers
-- View list of teachers
-- View teacher details
+- List teachers / view teacher details
 
 ### User Profile
-- View user profile
-- Delete user account
+- View own profile (self-only access)
+- Delete own account
+- Self-promotion to admin (development convenience)
+
+## Architecture
+
+The backend follows a layered structure with a single responsibility per file:
+
+- **routes** → **controllers** (HTTP) → **services** (business logic) → **Prisma** (data access)
+- **DTOs** are Zod schemas validating every request body.
+- Errors use a typed `AppError(statusCode, message)`. Controllers stay free of `try/catch`:
+  each handler is wrapped in an `asyncHandler` that forwards rejections to a single global
+  `errorHandler` middleware, which maps `AppError` to its status and returns a generic 500
+  for anything unexpected (without leaking internal messages).
 
 ## Prerequisites
 
 - Node.js 22 LTS or higher
 - Docker and Docker Compose
-- npm or yarn
+- npm
 
 ## Installation
 
 ### 1. Clone the repository
 
 ```bash
-cd p4-dfsjs-starter
+git clone https://github.com/EnhydraV/ocr-jsld-p4.git
+cd ocr-jsld-p4
 ```
 
-### 2. Install Backend Dependencies
+### 2. Install dependencies
 
 ```bash
-cd backend
-npm install
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-### 3. Install Frontend Dependencies
+### 3. Set up environment variables
 
-```bash
-cd ../frontend
-npm install
-```
-
-### 4. Set up Environment Variables
-
-Create a `.env` file in the `backend` directory:
-
-```bash
-cd ../backend
-cp .env.example .env
-```
-
-The default configuration should work with Docker Compose:
+Create a `.env` file in the `backend` directory (the defaults match the Docker Compose setup):
 
 ```env
 DATABASE_URL="postgresql://yogauser:yogapass@localhost:5432/yogastudio"
@@ -94,97 +88,79 @@ PORT=8080
 NODE_ENV=development
 ```
 
-### 5. Start PostgreSQL with Docker
+### 4. Start PostgreSQL
 
 From the project root:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-This will start a PostgreSQL container on port 5432.
+This starts a `postgres:16-alpine` container on port 5432.
 
-### 6. Run Database Migrations
+### 5. Run migrations and seed the database
 
 ```bash
 cd backend
 npm run prisma:migrate
-```
-
-### 7. Seed the Database
-
-```bash
 npm run prisma:seed
 ```
 
-This will create:
-- 1 admin user: `yoga@studio.com` / `test!1234`
-- 1 regular user: `user@test.com` / `test!1234`
-- 3 teachers
-- 4 yoga sessions
+The seed creates:
+- 1 admin user - `yoga@studio.com` / `test!1234`
+- 1 regular user - `user@test.com` / `test!1234`
+- 3 teachers and 4 yoga sessions
 
 ## Running the Application
 
-### Start the Backend (Terminal 1)
-
 ```bash
-cd backend
-npm run dev
+# Terminal 1 - API on http://localhost:8080
+cd backend && npm run dev
+
+# Terminal 2 - frontend on http://localhost:3000
+cd frontend && npm run dev
 ```
-
-The API will run on `http://localhost:8080`
-
-### Start the Frontend (Terminal 2)
-
-```bash
-cd frontend
-npm run dev
-```
-
-The frontend will run on `http://localhost:3000`
 
 ## Default Credentials
 
-**Admin User:**
-- Email: `yoga@studio.com`
-- Password: `test!1234`
-
-**Regular User:**
-- Email: `user@test.com`
-- Password: `test!1234`
+| Role  | Email             | Password    |
+|-------|-------------------|-------------|
+| Admin | `yoga@studio.com` | `test!1234` |
+| User  | `user@test.com`   | `test!1234` |
 
 ## API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login and get JWT token
+- `POST /api/auth/login` - Login and get a JWT token
 
-### Sessions
-- `GET /api/session` - Get all sessions (protected)
-- `GET /api/session/:id` - Get session by ID (protected)
-- `POST /api/session` - Create session (admin only)
-- `PUT /api/session/:id` - Update session (admin only)
-- `DELETE /api/session/:id` - Delete session (admin only)
-- `POST /api/session/:id/participate/:userId` - Join session (protected)
-- `DELETE /api/session/:id/participate/:userId` - Leave session (protected)
+### Sessions (protected)
+- `GET /api/session` - List all sessions
+- `GET /api/session/:id` - Get a session by ID
+- `POST /api/session` - Create a session (admin only)
+- `PUT /api/session/:id` - Update a session (admin only)
+- `DELETE /api/session/:id` - Delete a session (admin only)
+- `POST /api/session/:id/participate/:userId` - Join a session
+- `DELETE /api/session/:id/participate/:userId` - Leave a session
 
-### Teachers
-- `GET /api/teacher` - Get all teachers (protected)
-- `GET /api/teacher/:id` - Get teacher by ID (protected)
+### Teachers (protected)
+- `GET /api/teacher` - List all teachers
+- `GET /api/teacher/:id` - Get a teacher by ID
 
-### Users
-- `GET /api/user/:id` - Get user by ID (protected)
-- `DELETE /api/user/:id` - Delete user account (protected)
+### Users (protected)
+- `GET /api/user/:id` - Get a user (self-only)
+- `DELETE /api/user/:id` - Delete own account
+- `POST /api/user/promote-admin` - Promote the authenticated user to admin
 
 ## Database Schema
 
 ```prisma
 model User {
   id        Int      @id @default(autoincrement())
-  email     String   @unique
-  firstName String
-  lastName  String
-  password  String
+  email     String   @unique @db.VarChar(50)
+  firstName String   @db.VarChar(20)
+  lastName  String   @db.VarChar(20)
+  password  String   @db.VarChar(120)
   admin     Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -192,23 +168,23 @@ model User {
 }
 
 model Teacher {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  firstName String    @db.VarChar(20)
+  lastName  String    @db.VarChar(20)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   sessions  Session[]
 }
 
 model Session {
-  id          Int       @id @default(autoincrement())
-  name        String
-  date        DateTime
-  description String
-  teacherId   Int
-  teacher     Teacher   @relation(fields: [teacherId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(50)
+  date         DateTime @db.Date
+  description  String   @db.VarChar(2500)
+  teacherId    Int
+  teacher      Teacher  @relation(fields: [teacherId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   participants SessionParticipation[]
 }
 
@@ -222,15 +198,42 @@ model SessionParticipation {
 }
 ```
 
+## Testing
+
+Tests live in a dedicated `tests/` folder mirroring `src/` (never colocated), on both sides.
+
+### Backend (Vitest)
+
+```bash
+npm test                  # Unit tests (services & controllers, Prisma mocked)
+npm run test:integration  # Integration tests - real PostgreSQL via Testcontainers (Docker required)
+npm run test:coverage     # Combined unit + integration coverage, 80% threshold (Docker required)
+npm run typecheck         # Type-check the test suite (tsconfig.test.json)
+```
+
+- **Unit** tests mock Prisma through a factory and isolate each layer.
+- **Integration** tests run the real services against a throwaway `postgres:16-alpine`
+  container, exercising real relations, constraints, cascades and migrations - the things
+  mocks cannot prove. They make up roughly 30% of the suite.
+
+### Frontend
+
+```bash
+npm test               # Unit / component tests (Vitest + Testing Library, jsdom)
+npm run test:coverage  # Coverage report
+npm run e2e            # End-to-end tests (Cypress, headless, with code coverage)
+npm run e2e:open      # Cypress interactive runner
+```
+
 ## Development Scripts
 
 ### Backend
 
 ```bash
-npm run dev          # Start development server with nodemon
-npm run build        # Build TypeScript to JavaScript
-npm start            # Start production server
-npm run prisma:generate  # Generate Prisma client
+npm run dev              # Dev server (nodemon)
+npm run build            # Compile TypeScript to dist/
+npm start                # Run the production build
+npm run prisma:generate  # Generate the Prisma client
 npm run prisma:migrate   # Run database migrations
 npm run prisma:seed      # Seed the database
 npm run prisma:studio    # Open Prisma Studio
@@ -239,56 +242,40 @@ npm run prisma:studio    # Open Prisma Studio
 ### Frontend
 
 ```bash
-npm run dev          # Start Vite development server
-npm run build        # Build for production
-npm run preview      # Preview production build
+npm run dev      # Vite dev server
+npm run build    # Production build
+npm run preview  # Preview the production build
 ```
 
 ## Project Structure
 
 ```
-p4-dfsjs-starter/
+ocr-jsld-p4/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/      # Request handlers
-│   │   ├── middleware/       # Auth middleware
-│   │   ├── dto/              # Zod validation schemas
-│   │   ├── utils/            # JWT utilities
-│   │   ├── routes/           # API routes
-│   │   └── app.ts            # Express app setup
-│   ├── prisma/
-│   │   ├── schema.prisma     # Database schema
-│   │   └── seed.ts           # Database seeding
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── .env
+│   │   ├── controllers/   # HTTP request handlers (no try/catch)
+│   │   ├── services/      # Business logic
+│   │   ├── middleware/    # Auth + global error handler
+│   │   ├── dto/           # Zod validation schemas
+│   │   ├── errors/        # AppError
+│   │   ├── utils/         # JWT, Prisma singleton, asyncHandler, mappers
+│   │   ├── routes/        # API routes
+│   │   └── app.ts         # Express app setup
+│   ├── tests/             # Mirror of src/ + integration/ (Testcontainers)
+│   ├── prisma/            # schema.prisma + seed.ts
+│   └── vitest.*.config.ts # unit / integration / coverage configs
 ├── frontend/
-│   ├── src/
-│   │   ├── pages/            # React page components
-│   │   ├── components/       # Reusable components
-│   │   ├── services/         # API services
-│   │   ├── types/            # TypeScript types
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tailwind.config.js
+│   ├── src/               # pages, components, hooks, services, types, utils
+│   ├── tests/             # Mirror of src/ + e2e/ (Cypress)
+│   └── vite.config.ts
 ├── docker-compose.yml
 └── README.md
 ```
 
-## Testing
-
-The project supports comprehensive testing with the following frameworks:
-- **Unit tests**: For testing individual components and utilities
-- **Integration tests**: For testing API endpoints
-- **End-to-end tests**: For testing critical user flows
-
-Run tests with the appropriate npm scripts in each directory.
-
 ## Troubleshooting
 
 ### Database connection issues
+
 ```bash
 # Check if PostgreSQL is running
 docker ps
@@ -301,6 +288,7 @@ docker-compose logs postgres
 ```
 
 ### Port already in use
+
 ```bash
 # Check what's using port 8080
 lsof -i :8080
@@ -313,6 +301,7 @@ kill -9 <PID>
 ```
 
 ### Prisma issues
+
 ```bash
 # Reset database (WARNING: deletes all data)
 npx prisma migrate reset
