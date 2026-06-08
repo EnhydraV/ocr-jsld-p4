@@ -1,27 +1,7 @@
-import { Prisma } from '@prisma/client';
 import { CreateSessionSchema, UpdateSessionSchema, type SessionResponse } from '../dto/session.dto';
 import { AppError } from '../errors/AppError';
+import { toSessionResponse } from '../utils/session.util';
 import prisma from '../utils/prisma';
-
-// Session Prisma avec ses relations chargées (miroir de l'include des requêtes)
-export type SessionWithRelations = Prisma.SessionGetPayload<{
-    include: { teacher: true; participants: { include: { user: true } } };
-}>;
-
-const toSessionResponse = (session: SessionWithRelations): SessionResponse => ({
-    id: session.id,
-    name: session.name,
-    date: session.date,
-    description: session.description,
-    teacher: {
-        id: session.teacher.id,
-        firstName: session.teacher.firstName,
-        lastName: session.teacher.lastName,
-    },
-    users: session.participants.map((p) => p.user.id),
-    createdAt: session.createdAt,
-    updatedAt: session.updatedAt,
-});
 
 export class SessionService {
     async getAll() {
